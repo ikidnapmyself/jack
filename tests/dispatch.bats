@@ -25,7 +25,7 @@ setup() {
 }
 
 @test "theme name with path characters exits 2" {
-  run "$JACK" ../core
+  run "$JACK" ../lib/core
   [ "$status" -eq 2 ]
 }
 
