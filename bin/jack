@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -u
+
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in
+    /*) ;;
+    *) src="$dir/$src" ;;
+  esac
+done
+JACK_ROOT="$(cd -P "$(dirname "$src")/.." && pwd)"
+
+. "$JACK_ROOT/lib/core.sh"
+
+list_themes() {
+  local file name desc
+  echo "usage: jack <theme> <action> [args]"
+  echo
+  echo "themes:"
+  for file in "$JACK_ROOT"/lib/*.sh; do
+    name="$(basename "$file" .sh)"
+    [ "$name" = core ] && continue
+    desc="$(sed -n 's/^JACK_DESC="\(.*\)"$/\1/p' "$file" | head -n 1)"
+    printf '  %-10s %s\n' "$name" "$desc"
+  done
+}
+
+list_actions() {
+  local theme="$1"
+  echo "usage: jack $theme <action> [args]"
+  echo
+  echo "actions:"
+  sed -n "s/^${theme}_\([a-z_]*\)()[[:space:]]*{.*/  \1/p" "$JACK_ROOT/lib/$theme.sh"
+}
+
+main() {
+  local theme="${1:-}" action="${2:-}"
+
+  if [ -z "$theme" ] || [ "$theme" = -h ] || [ "$theme" = --help ]; then
+    list_themes
+    return 0
+  fi
+
+  case "$theme" in
+    *[!a-z]*) die_usage "unknown theme: $theme" ;;
+  esac
+  if [ "$theme" = core ] || [ ! -f "$JACK_ROOT/lib/$theme.sh" ]; then
+    die_usage "unknown theme: $theme"
+  fi
+  . "$JACK_ROOT/lib/$theme.sh"
+
+  if [ -z "$action" ]; then
+    list_actions "$theme"
+    return 0
+  fi
+
+  case "$action" in
+    *[!a-z_]*) die_usage "unknown action: $theme $action" ;;
+  esac
+  declare -F "${theme}_${action}" >/dev/null || die_usage "unknown action: $theme $action"
+
+  shift 2
+  "${theme}_${action}" "$@"
+}
+
+main "$@"
