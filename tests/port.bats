@@ -52,3 +52,51 @@ teardown() {
   run "$JACK" port list 007
   [ "$status" -eq 2 ]
 }
+
+@test "kill without a port exits 2" {
+  run "$JACK" port kill
+  [ "$status" -eq 2 ]
+}
+
+@test "kill rejects invalid port and unknown flag" {
+  run "$JACK" port kill abc
+  [ "$status" -eq 2 ]
+  run "$JACK" port kill -z "$PORT"
+  [ "$status" -eq 2 ]
+}
+
+@test "kill on an unused port exits 1" {
+  run "$JACK" port kill -y "$PORT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"nothing listening"* ]]
+}
+
+@test "kill -y terminates the listener" {
+  start_listener "$PORT"
+  run "$JACK" port kill -y "$PORT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"$LISTENER_PID"* ]]
+  port_is_free "$PORT"
+}
+
+@test "kill aborts when the answer is n" {
+  start_listener "$PORT"
+  run bash -c "echo n | '$JACK' port kill '$PORT'"
+  [ "$status" -eq 1 ]
+  ! port_is_free "$PORT"
+}
+
+@test "kill proceeds when the answer is y" {
+  start_listener "$PORT"
+  run bash -c "echo y | '$JACK' port kill '$PORT'"
+  [ "$status" -eq 0 ]
+  port_is_free "$PORT"
+}
+
+@test "kill escalates to SIGKILL when SIGTERM is ignored" {
+  start_stubborn_listener "$PORT"
+  run "$JACK" port kill -y "$PORT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"SIGKILL"* ]]
+  port_is_free "$PORT"
+}
