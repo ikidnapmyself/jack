@@ -35,3 +35,23 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"port"* ]]
 }
+
+@test "theme alone lists public actions only" {
+  run "$JACK" port
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"list"* ]]
+  [[ "$output" == *"kill"* ]]
+  [[ "$output" != *"validate"* ]]
+  [[ "$output" != *"cmdline"* ]]
+}
+
+@test "unknown action exits 2" {
+  run "$JACK" port nope
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown action"* ]]
+}
+
+@test "helper functions are not callable as actions" {
+  run "$JACK" port _validate
+  [ "$status" -eq 2 ]
+}
