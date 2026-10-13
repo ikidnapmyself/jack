@@ -68,7 +68,10 @@ _port_terminate() {
   done
 
   kill -KILL "$pid" 2>/dev/null
-  sleep 0.2
+  for i in 1 2 3 4 5; do
+    _port_alive "$pid" || break
+    sleep 0.2
+  done
   if _port_alive "$pid"; then
     echo "${RED}$pid survived SIGKILL${RESET}" >&2
     return 1
@@ -109,8 +112,20 @@ port_kill() {
     confirm "Kill $count process(es)?" || { echo "aborted" >&2; return 1; }
   fi
 
-  local rc failed=0 denied=0
+  local fresh live=""
+  fresh="$(_port_rows "$port" | awk '{print $2}' | sort -un)"
   for pid in $pids; do
+    case " $(echo $fresh) " in
+      *" $pid "*) live="$live $pid" ;;
+    esac
+  done
+  if [ -z "$live" ]; then
+    echo "nothing listening on port $port" >&2
+    return 1
+  fi
+
+  local rc failed=0 denied=0
+  for pid in $live; do
     rc=0
     _port_terminate "$pid" || rc=$?
     case "$rc" in

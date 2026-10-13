@@ -100,3 +100,14 @@ teardown() {
   [[ "$output" == *"SIGKILL"* ]]
   port_is_free "$PORT"
 }
+
+@test "kill re-resolves PIDs after the confirm and skips a listener that died" {
+  start_listener "$PORT"
+  ( sleep 0.3; kill -9 "$LISTENER_PID" ) &
+  run bash -c "(sleep 1.5; echo y) | '$JACK' port kill '$PORT'"
+  wait
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"nothing listening"* ]]
+  [[ "$output" != *"already gone"* ]]
+  [[ "$output" != *"terminated"* ]]
+}
