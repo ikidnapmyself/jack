@@ -44,3 +44,11 @@ teardown() {
   run "$JACK" port list 70000
   [ "$status" -eq 2 ]
 }
+
+@test "list rejects overlong and zero-padded ports" {
+  run "$JACK" port list 99999999999999999999
+  [ "$status" -eq 2 ]
+  [[ "$output" != *"integer expression"* ]]
+  run "$JACK" port list 007
+  [ "$status" -eq 2 ]
+}

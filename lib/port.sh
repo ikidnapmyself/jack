@@ -2,7 +2,7 @@ JACK_DESC="List and kill processes on TCP ports"
 
 _port_validate() {
   case "$1" in
-    ''|*[!0-9]*) die_usage "invalid port: $1" ;;
+    ''|*[!0-9]*|0*|??????*) die_usage "invalid port: $1" ;;
   esac
   if [ "$1" -lt 1 ] || [ "$1" -gt 65535 ]; then
     die_usage "invalid port: $1"
