@@ -63,3 +63,16 @@ validate_port() {
     die_usage "invalid port: $1"
   fi
 }
+
+ssh_keygen_for() {
+  local theme="$1"
+  shift
+  { [ $# -eq 1 ] && [ -n "$1" ]; } || die_usage "usage: jack $theme ssh-key <email>"
+  require_cmd ssh-keygen
+  local path="$HOME/.ssh/id_ed25519"
+  [ ! -e "$path" ] || die "$path already exists"
+  mkdir -p "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  ssh-keygen -t ed25519 -C "$1" -f "$path"
+  echo "public key: $path.pub"
+}

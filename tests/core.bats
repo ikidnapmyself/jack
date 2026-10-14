@@ -65,3 +65,29 @@ setup() {
     [ "$status" -eq 2 ]
   done
 }
+
+@test "ssh_keygen_for creates an ed25519 key for the email" {
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME"
+  stub_cmd ssh-keygen ''
+  run ssh_keygen_for mac me@example.com
+  [ "$status" -eq 0 ]
+  logged "ssh-keygen -t ed25519 -C me@example.com -f $HOME/.ssh/id_ed25519"
+}
+
+@test "ssh_keygen_for refuses to overwrite an existing key" {
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME/.ssh"
+  touch "$HOME/.ssh/id_ed25519"
+  stub_cmd ssh-keygen ''
+  run ssh_keygen_for mac me@example.com
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"already exists"* ]]
+  not_logged_like "^ssh-keygen"
+}
+
+@test "ssh_keygen_for without an email exits 2" {
+  run ssh_keygen_for mac
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"jack mac ssh-key <email>"* ]]
+}
