@@ -25,3 +25,12 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"jack fx two-words"* ]]
 }
+
+@test "real themes expose their aliases" {
+  run "$JACK" alias print
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"alias dstop='jack docker stop'"* ]]
+  [[ "$output" == *"alias greset='jack git reset-remote'"* ]]
+  [[ "$output" == *"alias npmcc='jack npm cache-clear'"* ]]
+  [[ "$output" == *"alias mydump='jack mysql dump'"* ]]
+}
