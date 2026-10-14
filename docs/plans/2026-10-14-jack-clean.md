@@ -651,12 +651,12 @@ Append to `tests/clean.bats`:
 
 @test "list does not list itself or all" {
   run "$JACK" clean list
-  [[ "$output" != *" list "* ]]
-  [[ "$output" != *" all "* ]]
+  if grep -qE '^(list|all)[[:space:]]' <<< "$output"; then false; fi
 }
 
 @test "list rejects arguments" {
   run "$JACK" clean list extra
+  [[ "$output" == *"usage: jack clean list"* ]] || false
   [ "$status" -eq 2 ]
 }
 ```

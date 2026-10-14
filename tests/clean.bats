@@ -269,3 +269,32 @@ fi'
   [ "$status" -eq 1 ]
   not_logged_like "^cargo"
 }
+
+@test "list shows installed state for every action" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd pip ''
+  run "$JACK" clean list
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ pip[[:space:]]+yes ]] || false
+  [[ "$output" =~ pnpm[[:space:]]+no ]] || false
+  [[ "$output" =~ apt[[:space:]]+no ]]
+}
+
+@test "list marks xcode available when DerivedData exists" {
+  export JACK_UNAME=Darwin
+  mkdir -p "$HOME/Library/Developer/Xcode/DerivedData"
+  run "$JACK" clean list
+  [[ "$output" =~ xcode[[:space:]]+yes ]]
+}
+
+@test "list does not list itself or all" {
+  run "$JACK" clean list
+  if grep -qE '^(list|all)[[:space:]]' <<< "$output"; then false; fi
+}
+
+@test "list rejects arguments" {
+  run "$JACK" clean list extra
+  [[ "$output" == *"usage: jack clean list"* ]] || false
+  [ "$status" -eq 2 ]
+}

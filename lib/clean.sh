@@ -29,6 +29,8 @@ JACK_DOC_cargo="Autoclean the cargo cache, installs cargo-cache if missing"
 JACK_USAGE_gradle="[-y]"
 JACK_USAGE_maven="[-y]"
 JACK_USAGE_cargo="[-y]"
+JACK_DOC_list="Show every clean action and whether it can run on this machine"
+JACK_USAGE_list=""
 
 . "$JACK_ROOT/lib/npm.sh"
 . "$JACK_ROOT/lib/docker.sh"
@@ -43,6 +45,18 @@ _clean_simple() {
 
 _clean_require_os() {
   [ "${JACK_UNAME:-$(uname -s)}" = "$1" ] || die "$3 is for $2 only"
+}
+
+_clean_available() {
+  local os="${JACK_UNAME:-$(uname -s)}"
+  case "$1" in
+    xcode) [ "$os" = Darwin ] && [ -d "${HOME:?}/Library/Developer/Xcode/DerivedData" ] ;;
+    maven) [ -d "${HOME:?}/.m2/repository" ] ;;
+    brew) [ "$os" = Darwin ] && command -v brew >/dev/null 2>&1 ;;
+    apt|snap) [ "$os" = Linux ] && command -v "$1" >/dev/null 2>&1 ;;
+    journal) [ "$os" = Linux ] && command -v journalctl >/dev/null 2>&1 ;;
+    *) command -v "$1" >/dev/null 2>&1 ;;
+  esac
 }
 
 clean_pip() { _clean_simple pip $# pip cache purge; }
@@ -145,4 +159,14 @@ clean_cargo() {
   confirm_unless_yes "Autoclean the cargo cache, installing cargo-cache if missing?" "$ASSUME_YES" || return 1
   cargo cache --version >/dev/null 2>&1 || cargo install cargo-cache || die "cargo install failed"
   cargo cache --autoclean
+}
+
+clean_list() {
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage clean list)"
+  local act ok
+  for act in $(jack_actions clean); do
+    case "$act" in list|all) continue ;; esac
+    if _clean_available "$act"; then ok=yes; else ok=no; fi
+    printf '%-10s %-4s %s\n' "$act" "$ok" "$(jack_meta clean DOC "$act")"
+  done
 }
