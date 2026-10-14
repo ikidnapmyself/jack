@@ -83,12 +83,12 @@ port_kill() {
       -y) assume_yes=1 ;;
       -*) die_usage "unknown option: $arg" ;;
       *)
-        [ -z "$port" ] || die_usage "usage: jack port kill <port> [-y]"
+        [ -z "$port" ] || die_usage "usage: $(jack_usage port kill)"
         port="$arg"
         ;;
     esac
   done
-  [ -n "$port" ] || die_usage "usage: jack port kill <port> [-y]"
+  [ -n "$port" ] || die_usage "usage: $(jack_usage port kill)"
   validate_port "$port"
 
   local pids pid count

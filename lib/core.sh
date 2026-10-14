@@ -67,7 +67,7 @@ validate_port() {
 ssh_keygen_for() {
   local theme="$1"
   shift
-  { [ $# -eq 1 ] && [ -n "$1" ]; } || die_usage "usage: jack $theme ssh-key <email>"
+  { [ $# -eq 1 ] && [ -n "$1" ]; } || die_usage "usage: $(jack_usage "$theme" ssh-key)"
   require_cmd ssh-keygen
   local path="$HOME/.ssh/id_ed25519"
   [ ! -e "$path" ] || die "$path already exists"

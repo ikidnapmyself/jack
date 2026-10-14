@@ -10,7 +10,7 @@ JACK_USAGE_remote_url=""
 JACK_USAGE_submodules=""
 
 git_reset_remote() {
-  parse_yes_only "jack git reset-remote [-y]" "$@"
+  parse_yes_only "$(jack_usage git reset-remote)" "$@"
   require_cmd git
   local branch upstream remote backup
   branch="$(git symbolic-ref --short -q HEAD)" || die "detached HEAD, nothing to reset"
@@ -30,13 +30,13 @@ git_reset_remote() {
 }
 
 git_remote_url() {
-  [ $# -eq 0 ] || die_usage "usage: jack git remote-url"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage git remote-url)"
   require_cmd git
   git remote show origin
 }
 
 git_submodules() {
-  [ $# -eq 0 ] || die_usage "usage: jack git submodules"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage git submodules)"
   require_cmd git
   git submodule update --init --recursive
 }

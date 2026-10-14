@@ -7,13 +7,13 @@ JACK_USAGE_nginx_reload=""
 JACK_USAGE_ssh_key="<email>"
 
 mac_flush_dns() {
-  [ $# -eq 0 ] || die_usage "usage: jack mac flush-dns"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage mac flush-dns)"
   require_root mac flush-dns
   killall -HUP mDNSResponder
 }
 
 mac_nginx_reload() {
-  [ $# -eq 0 ] || die_usage "usage: jack mac nginx-reload"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage mac nginx-reload)"
   require_root mac nginx-reload
   require_cmd nginx
   nginx -s reload

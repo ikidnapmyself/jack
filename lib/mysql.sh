@@ -4,7 +4,7 @@ JACK_ALIAS_dump="mydump"
 JACK_USAGE_dump="<db> <file> [table...] [-u user]"
 
 mysql_dump() {
-  local usage="usage: jack mysql dump <db> <file> [table...] [-u user]"
+  local usage="usage: $(jack_usage mysql dump)"
   local user="${USER:-root}" n=$#
   while [ "$n" -gt 0 ]; do
     case "$1" in

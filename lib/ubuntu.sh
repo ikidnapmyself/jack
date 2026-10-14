@@ -19,7 +19,7 @@ JACK_USAGE_big_files_delete="<size> [dir] [-y]"
 JACK_USAGE_mount="<device> <target>"
 
 ubuntu_flush_dns() {
-  [ $# -eq 0 ] || die_usage "usage: jack ubuntu flush-dns"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage ubuntu flush-dns)"
   require_root ubuntu flush-dns
   require_cmd service
   service named restart
@@ -27,13 +27,13 @@ ubuntu_flush_dns() {
 }
 
 ubuntu_ports() {
-  [ $# -eq 0 ] || die_usage "usage: jack ubuntu ports"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage ubuntu ports)"
   require_cmd ss
   ss -lntp
 }
 
 ubuntu_port_test() {
-  [ $# -eq 2 ] || die_usage "usage: jack ubuntu port-test <host> <port>"
+  [ $# -eq 2 ] || die_usage "usage: $(jack_usage ubuntu port-test)"
   case "$1" in
     ''|-*|*[!A-Za-z0-9.:-]*) die_usage "invalid host: $1" ;;
   esac
@@ -48,14 +48,14 @@ ubuntu_port_test() {
 }
 
 ubuntu_count() {
-  [ $# -le 1 ] || die_usage "usage: jack ubuntu count [dir]"
+  [ $# -le 1 ] || die_usage "usage: $(jack_usage ubuntu count)"
   local dir="${1:-.}"
   _ubuntu_validate_dir "$dir"
   find "$dir" -type f | wc -l | tr -d ' '
 }
 
 ubuntu_mysql_config() {
-  [ $# -eq 0 ] || die_usage "usage: jack ubuntu mysql-config"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage ubuntu mysql-config)"
   require_cmd mysql
   mysql --verbose --help | grep -A 1 "Default options"
 }
@@ -88,7 +88,7 @@ _ubuntu_big_matches() {
 }
 
 ubuntu_big_files() {
-  { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "usage: jack ubuntu big-files <size> [dir]"
+  { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "usage: $(jack_usage ubuntu big-files)"
   _ubuntu_validate_size "$1"
   local dir="${2:-.}" matches
   _ubuntu_validate_dir "$dir"
@@ -101,7 +101,7 @@ ubuntu_big_files() {
 }
 
 ubuntu_big_files_delete() {
-  local usage="usage: jack ubuntu big-files-delete <size> [dir] [-y]"
+  local usage="usage: $(jack_usage ubuntu big-files-delete)"
   local assume_yes=0 n=$#
   while [ "$n" -gt 0 ]; do
     case "$1" in
@@ -129,7 +129,7 @@ ubuntu_big_files_delete() {
 }
 
 ubuntu_mount() {
-  [ $# -eq 2 ] || die_usage "usage: jack ubuntu mount <device> <target>"
+  [ $# -eq 2 ] || die_usage "usage: $(jack_usage ubuntu mount)"
   case "$1" in
     /dev/?*) ;;
     *) die_usage "invalid device: $1" ;;

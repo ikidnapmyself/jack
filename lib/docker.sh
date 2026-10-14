@@ -16,7 +16,7 @@ JACK_USAGE_ps=""
 JACK_USAGE_restart="<service>"
 
 docker_stop() {
-  parse_yes_only "jack docker stop [-y]" "$@"
+  parse_yes_only "$(jack_usage docker stop)" "$@"
   require_cmd docker
   local ids count
   ids="$(docker ps -q)" || die "docker ps failed"
@@ -30,7 +30,7 @@ docker_stop() {
 }
 
 docker_rm() {
-  parse_yes_only "jack docker rm [-y]" "$@"
+  parse_yes_only "$(jack_usage docker rm)" "$@"
   require_cmd docker
   local ids count
   ids="$(docker ps -aq -f status=exited)" || die "docker ps failed"
@@ -49,7 +49,7 @@ docker_prune() {
     case "$arg" in
       -y) assume_yes=1 ;;
       --volumes) volumes="--volumes" ;;
-      *) die_usage "usage: jack docker prune [--volumes] [-y]" ;;
+      *) die_usage "usage: $(jack_usage docker prune)" ;;
     esac
   done
   require_cmd docker
@@ -58,13 +58,13 @@ docker_prune() {
 }
 
 docker_ps() {
-  [ $# -eq 0 ] || die_usage "usage: jack docker ps"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage docker ps)"
   require_cmd docker-compose
   docker-compose ps
 }
 
 docker_restart() {
-  [ $# -eq 1 ] || die_usage "usage: jack docker restart <service>"
+  [ $# -eq 1 ] || die_usage "usage: $(jack_usage docker restart)"
   case "$1" in
     ''|-*|*[!A-Za-z0-9_.-]*) die_usage "invalid service: $1" ;;
   esac

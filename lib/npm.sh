@@ -6,13 +6,13 @@ JACK_USAGE_cache_clear=""
 JACK_USAGE_global_setup="[-y]"
 
 npm_cache_clear() {
-  [ $# -eq 0 ] || die_usage "usage: jack npm cache-clear"
+  [ $# -eq 0 ] || die_usage "usage: $(jack_usage npm cache-clear)"
   require_cmd npm
   npm cache clear --force
 }
 
 npm_global_setup() {
-  parse_yes_only "jack npm global-setup [-y]" "$@"
+  parse_yes_only "$(jack_usage npm global-setup)" "$@"
   require_cmd npm
   local dir="$HOME/.npm-global" profile="$HOME/.profile"
   local line='export PATH=~/.npm-global/bin:$PATH'
