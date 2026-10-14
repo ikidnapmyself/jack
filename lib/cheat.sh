@@ -1,5 +1,6 @@
 JACK_DESC="Browse every theme's actions"
 JACK_DOC_list="List actions with descriptions, optionally for one theme"
+JACK_USAGE_list="[theme]"
 
 cheat_list() {
   local only="${1:-}" theme

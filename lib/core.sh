@@ -93,6 +93,12 @@ jack_meta() {
   sed -n "s/^JACK_$2_$3=\"\(.*\)\"\$/\1/p" "$JACK_ROOT/lib/$1.sh" | head -n 1
 }
 
+jack_usage() {
+  local theme="$1" args
+  args="$(jack_meta "$theme" USAGE "$(printf %s "$2" | tr - _)")"
+  printf 'jack %s %s%s\n' "$theme" "$(printf %s "$2" | tr _ -)" "${args:+ $args}"
+}
+
 jack_print_actions() {
   local act
   for act in $(jack_actions "$1"); do

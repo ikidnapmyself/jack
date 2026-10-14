@@ -1,5 +1,6 @@
 JACK_DESC="Emit shell aliases for jack actions"
 JACK_DOC_print="Print one alias line per aliased action, for eval in your shell rc"
+JACK_USAGE_print=""
 
 alias_print() {
   local theme act name

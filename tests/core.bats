@@ -91,3 +91,13 @@ setup() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"jack mac ssh-key <email>"* ]]
 }
+
+@test "jack_usage renders theme, hyphenated action and args" {
+  run jack_usage port kill
+  [ "$output" = "jack port kill <port> [-y]" ]
+}
+
+@test "jack_usage accepts underscores and drops the space for no-arg actions" {
+  run jack_usage git remote_url
+  [ "$output" = "jack git remote-url" ]
+}

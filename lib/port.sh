@@ -1,6 +1,8 @@
 JACK_DESC="List and kill processes on TCP ports"
 JACK_DOC_list="List TCP listeners, optionally for one port"
 JACK_DOC_kill="Kill whatever listens on a port, SIGTERM then SIGKILL"
+JACK_USAGE_list="[port]"
+JACK_USAGE_kill="<port> [-y]"
 
 _port_rows() {
   lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk -v want="${1:-}" '

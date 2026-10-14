@@ -9,6 +9,11 @@ JACK_DOC_ps="Show this project's compose services"
 JACK_ALIAS_ps="dps"
 JACK_DOC_restart="Restart one compose service"
 JACK_ALIAS_restart="drestart"
+JACK_USAGE_stop="[-y]"
+JACK_USAGE_rm="[-y]"
+JACK_USAGE_prune="[--volumes] [-y]"
+JACK_USAGE_ps=""
+JACK_USAGE_restart="<service>"
 
 docker_stop() {
   parse_yes_only "jack docker stop [-y]" "$@"

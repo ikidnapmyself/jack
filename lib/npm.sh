@@ -2,6 +2,8 @@ JACK_DESC="NPM chores"
 JACK_DOC_cache_clear="Force-clear the npm cache"
 JACK_ALIAS_cache_clear="npmcc"
 JACK_DOC_global_setup="Point global installs at ~/.npm-global and add it to PATH in ~/.profile"
+JACK_USAGE_cache_clear=""
+JACK_USAGE_global_setup="[-y]"
 
 npm_cache_clear() {
   [ $# -eq 0 ] || die_usage "usage: jack npm cache-clear"

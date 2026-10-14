@@ -5,6 +5,9 @@ JACK_DOC_remote_url="Show the origin remote"
 JACK_ALIAS_remote_url="gurl"
 JACK_DOC_submodules="Init and update submodules recursively"
 JACK_ALIAS_submodules="gsub"
+JACK_USAGE_reset_remote="[-y]"
+JACK_USAGE_remote_url=""
+JACK_USAGE_submodules=""
 
 git_reset_remote() {
   parse_yes_only "jack git reset-remote [-y]" "$@"

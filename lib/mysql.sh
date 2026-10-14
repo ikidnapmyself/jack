@@ -1,6 +1,7 @@
 JACK_DESC="MySQL chores"
 JACK_DOC_dump="Dump a database or chosen tables to a file with mysqldump"
 JACK_ALIAS_dump="mydump"
+JACK_USAGE_dump="<db> <file> [table...] [-u user]"
 
 mysql_dump() {
   local usage="usage: jack mysql dump <db> <file> [table...] [-u user]"
