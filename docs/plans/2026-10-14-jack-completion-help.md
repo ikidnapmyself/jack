@@ -284,7 +284,7 @@ Change the empty-action condition to:
   if [ -z "$action" ] || [ "$action" = help ]; then
 ```
 
-Hmm, this runs before the action is validated, which is right: `jack port help` is a theme-level word, not an action. Then, after the `declare -F` check and before `shift 2`:
+`jack port help` is a theme-level word, so it must be checked before the action is validated. Then, after the `declare -F` check and before `shift 2`:
 
 ```bash
   case "${3:-}" in
