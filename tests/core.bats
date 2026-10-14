@@ -50,3 +50,18 @@ setup() {
   run require_root mac flush-dns
   [ "$status" -eq 0 ]
 }
+
+@test "validate_port accepts the range edges" {
+  run validate_port 1
+  [ "$status" -eq 0 ]
+  run validate_port 65535
+  [ "$status" -eq 0 ]
+}
+
+@test "validate_port rejects bad ports with exit 2" {
+  local p
+  for p in 0 65536 080 abc "" 1234567; do
+    run validate_port "$p"
+    [ "$status" -eq 2 ]
+  done
+}

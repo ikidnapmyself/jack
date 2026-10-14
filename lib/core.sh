@@ -54,3 +54,12 @@ parse_yes_only() {
 require_root() {
   [ "$(id -u)" -eq 0 ] || die "needs root, run: sudo jack $*"
 }
+
+validate_port() {
+  case "$1" in
+    ''|*[!0-9]*|0*|??????*) die_usage "invalid port: $1" ;;
+  esac
+  if [ "$1" -lt 1 ] || [ "$1" -gt 65535 ]; then
+    die_usage "invalid port: $1"
+  fi
+}

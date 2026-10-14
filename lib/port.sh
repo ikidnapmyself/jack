@@ -1,14 +1,5 @@
 JACK_DESC="List and kill processes on TCP ports"
 
-_port_validate() {
-  case "$1" in
-    ''|*[!0-9]*|0*|??????*) die_usage "invalid port: $1" ;;
-  esac
-  if [ "$1" -lt 1 ] || [ "$1" -gt 65535 ]; then
-    die_usage "invalid port: $1"
-  fi
-}
-
 _port_rows() {
   lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk -v want="${1:-}" '
     NR > 1 {
@@ -25,7 +16,7 @@ _port_cmdline() {
 port_list() {
   require_cmd lsof
   if [ $# -gt 0 ]; then
-    _port_validate "$1"
+    validate_port "$1"
   fi
 
   local rows port pid user
@@ -94,7 +85,7 @@ port_kill() {
     esac
   done
   [ -n "$port" ] || die_usage "usage: jack port kill <port> [-y]"
-  _port_validate "$port"
+  validate_port "$port"
 
   local pids pid count
   pids="$(_port_rows "$port" | awk '{print $2}' | sort -un)"
