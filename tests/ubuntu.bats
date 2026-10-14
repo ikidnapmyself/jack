@@ -86,3 +86,87 @@ setup() {
   [ "$status" -eq 0 ]
   logged "ssh-keygen -t ed25519 -C me@example.com -f $HOME/.ssh/id_ed25519"
 }
+
+make_sized_files() {
+  BIG_DIR="$BATS_TEST_TMPDIR/big"
+  mkdir -p "$BIG_DIR/sub"
+  head -c 5000 /dev/zero > "$BIG_DIR/large"
+  head -c 5000 /dev/zero > "$BIG_DIR/sub/large2"
+  head -c 10 /dev/zero > "$BIG_DIR/small"
+}
+
+@test "big-files lists only files over the size" {
+  make_sized_files
+  run "$JACK" ubuntu big-files 1k "$BIG_DIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"large"* ]]
+  [[ "$output" == *"large2"* ]]
+  [[ "$output" != *"small"* ]]
+}
+
+@test "big-files with no matches exits 1" {
+  make_sized_files
+  run "$JACK" ubuntu big-files 1M "$BIG_DIR"
+  [ "$status" -eq 1 ]
+}
+
+@test "big-files rejects a bad size" {
+  make_sized_files
+  run "$JACK" ubuntu big-files '1k;x' "$BIG_DIR"
+  [ "$status" -eq 2 ]
+  run "$JACK" ubuntu big-files k "$BIG_DIR"
+  [ "$status" -eq 2 ]
+}
+
+@test "big-files-delete -y deletes the matches and keeps the rest" {
+  make_sized_files
+  run "$JACK" ubuntu big-files-delete 1k "$BIG_DIR" -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$BIG_DIR/large" ]
+  [ ! -e "$BIG_DIR/sub/large2" ]
+  [ -e "$BIG_DIR/small" ]
+}
+
+@test "big-files-delete lists the count and aborts when declined" {
+  make_sized_files
+  run "$JACK" ubuntu big-files-delete 1k "$BIG_DIR" <<< "n"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"2 file(s)"* ]]
+  [ -e "$BIG_DIR/large" ]
+}
+
+@test "big-files-delete with no matches exits 1 without prompting" {
+  make_sized_files
+  run "$JACK" ubuntu big-files-delete 1M "$BIG_DIR" -y
+  [ "$status" -eq 1 ]
+}
+
+@test "mount needs root" {
+  mkdir -p "$BATS_TEST_TMPDIR/mnt"
+  stub_cmd id 'echo 501'
+  stub_cmd mount ''
+  run "$JACK" ubuntu mount /dev/sdb1 "$BATS_TEST_TMPDIR/mnt"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"sudo jack ubuntu mount /dev/sdb1"* ]]
+  not_logged_like "^mount"
+}
+
+@test "mount mounts the device as root" {
+  mkdir -p "$BATS_TEST_TMPDIR/mnt"
+  stub_cmd id 'echo 0'
+  stub_cmd mount ''
+  run "$JACK" ubuntu mount /dev/sdb1 "$BATS_TEST_TMPDIR/mnt"
+  [ "$status" -eq 0 ]
+  logged "mount /dev/sdb1 $BATS_TEST_TMPDIR/mnt"
+}
+
+@test "mount validates device and target before the root check" {
+  stub_cmd id 'echo 501'
+  stub_cmd mount ''
+  run "$JACK" ubuntu mount sdb1 "$BATS_TEST_TMPDIR"
+  [ "$status" -eq 2 ]
+  run "$JACK" ubuntu mount /dev/sdb1 "$BATS_TEST_TMPDIR/nope"
+  [ "$status" -eq 2 ]
+  run "$JACK" ubuntu mount /dev/sdb1
+  [ "$status" -eq 2 ]
+}
