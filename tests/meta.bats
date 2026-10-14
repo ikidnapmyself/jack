@@ -35,3 +35,8 @@ setup() {
     done
   done
 }
+
+@test "themes and actions are discovered" {
+  [ -n "$(jack_themes)" ]
+  [ -n "$(jack_actions port)" ]
+}
