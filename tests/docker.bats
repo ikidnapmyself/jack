@@ -1,0 +1,114 @@
+#!/usr/bin/env bats
+
+load test_helper
+
+setup() {
+  setup_stubs
+}
+
+@test "stop -y stops running containers" {
+  stub_cmd docker 'case "$1" in ps) printf "abc\ndef\n" ;; esac'
+  run "$JACK" docker stop -y
+  [ "$status" -eq 0 ]
+  logged "docker ps -q"
+  logged "docker stop abc def"
+}
+
+@test "stop proceeds when the prompt is accepted" {
+  stub_cmd docker 'case "$1" in ps) echo abc ;; esac'
+  run "$JACK" docker stop <<< "y"
+  [ "$status" -eq 0 ]
+  logged "docker stop abc"
+}
+
+@test "stop aborts when the prompt is declined" {
+  stub_cmd docker 'case "$1" in ps) echo abc ;; esac'
+  run "$JACK" docker stop <<< "n"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"aborted"* ]]
+  not_logged_like "^docker stop"
+}
+
+@test "stop with nothing running says so" {
+  stub_cmd docker ''
+  run "$JACK" docker stop -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"nothing to stop"* ]]
+  not_logged_like "^docker stop"
+}
+
+@test "stop rejects unknown options" {
+  stub_cmd docker ''
+  run "$JACK" docker stop --force
+  [ "$status" -eq 2 ]
+}
+
+@test "rm -y removes exited containers" {
+  stub_cmd docker 'case "$1" in ps) printf "abc\ndef\n" ;; esac'
+  run "$JACK" docker rm -y
+  [ "$status" -eq 0 ]
+  logged "docker ps -aq -f status=exited"
+  logged "docker rm abc def"
+}
+
+@test "rm aborts when declined" {
+  stub_cmd docker 'case "$1" in ps) echo abc ;; esac'
+  run "$JACK" docker rm <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^docker rm"
+}
+
+@test "rm with nothing stopped says so" {
+  stub_cmd docker ''
+  run "$JACK" docker rm -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"nothing to remove"* ]]
+}
+
+@test "prune -y runs a forced system prune" {
+  stub_cmd docker ''
+  run "$JACK" docker prune -y
+  [ "$status" -eq 0 ]
+  logged "docker system prune -f"
+}
+
+@test "prune --volumes passes the flag through" {
+  stub_cmd docker ''
+  run "$JACK" docker prune --volumes -y
+  [ "$status" -eq 0 ]
+  logged "docker system prune -f --volumes"
+}
+
+@test "prune aborts when declined" {
+  stub_cmd docker ''
+  run "$JACK" docker prune <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^docker system"
+}
+
+@test "ps shows compose services" {
+  stub_cmd docker-compose ''
+  run "$JACK" docker ps
+  [ "$status" -eq 0 ]
+  logged "docker-compose ps"
+}
+
+@test "restart passes the service to docker-compose" {
+  stub_cmd docker-compose ''
+  run "$JACK" docker restart elasticsearch
+  [ "$status" -eq 0 ]
+  logged "docker-compose restart elasticsearch"
+}
+
+@test "restart without a service exits 2" {
+  stub_cmd docker-compose ''
+  run "$JACK" docker restart
+  [ "$status" -eq 2 ]
+}
+
+@test "restart rejects a bad service name" {
+  stub_cmd docker-compose ''
+  run "$JACK" docker restart 'a;b'
+  [ "$status" -eq 2 ]
+  not_logged_like "^docker-compose"
+}

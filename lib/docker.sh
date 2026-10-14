@@ -1,0 +1,68 @@
+JACK_DESC="Docker and docker-compose chores"
+JACK_DOC_stop="Stop all running containers"
+JACK_ALIAS_stop="dstop"
+JACK_DOC_rm="Remove all exited containers"
+JACK_ALIAS_rm="drm"
+JACK_DOC_prune="Remove unused containers, networks, images and cache, --volumes adds volumes"
+JACK_ALIAS_prune="dprune"
+JACK_DOC_ps="Show this project's compose services"
+JACK_ALIAS_ps="dps"
+JACK_DOC_restart="Restart one compose service"
+JACK_ALIAS_restart="drestart"
+
+docker_stop() {
+  parse_yes_only "jack docker stop [-y]" "$@"
+  require_cmd docker
+  local ids count
+  ids="$(docker ps -q)"
+  if [ -z "$ids" ]; then
+    echo "nothing to stop"
+    return 0
+  fi
+  count="$(printf '%s\n' "$ids" | wc -l | tr -d ' ')"
+  confirm_unless_yes "Stop $count container(s)?" "$ASSUME_YES" || return 1
+  docker stop $ids
+}
+
+docker_rm() {
+  parse_yes_only "jack docker rm [-y]" "$@"
+  require_cmd docker
+  local ids count
+  ids="$(docker ps -aq -f status=exited)"
+  if [ -z "$ids" ]; then
+    echo "nothing to remove"
+    return 0
+  fi
+  count="$(printf '%s\n' "$ids" | wc -l | tr -d ' ')"
+  confirm_unless_yes "Remove $count container(s)?" "$ASSUME_YES" || return 1
+  docker rm $ids
+}
+
+docker_prune() {
+  local volumes="" assume_yes=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+      -y) assume_yes=1 ;;
+      --volumes) volumes="--volumes" ;;
+      *) die_usage "usage: jack docker prune [--volumes] [-y]" ;;
+    esac
+  done
+  require_cmd docker
+  confirm_unless_yes "Prune unused Docker objects${volumes:+ including volumes}?" "$assume_yes" || return 1
+  docker system prune -f $volumes
+}
+
+docker_ps() {
+  [ $# -eq 0 ] || die_usage "usage: jack docker ps"
+  require_cmd docker-compose
+  docker-compose ps
+}
+
+docker_restart() {
+  [ $# -eq 1 ] || die_usage "usage: jack docker restart <service>"
+  case "$1" in
+    ''|-*|*[!A-Za-z0-9_.-]*) die_usage "invalid service: $1" ;;
+  esac
+  require_cmd docker-compose
+  docker-compose restart "$1"
+}
