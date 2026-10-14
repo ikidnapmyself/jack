@@ -23,6 +23,12 @@ JACK_USAGE_xcode="[-y]"
 JACK_USAGE_apt=""
 JACK_USAGE_journal=""
 JACK_USAGE_snap="[-y]"
+JACK_DOC_gradle="Stop the Gradle daemon and delete ~/.gradle/caches"
+JACK_DOC_maven="Delete Maven SNAPSHOT artifacts older than 90 days"
+JACK_DOC_cargo="Autoclean the cargo cache, installs cargo-cache if missing"
+JACK_USAGE_gradle="[-y]"
+JACK_USAGE_maven="[-y]"
+JACK_USAGE_cargo="[-y]"
 
 . "$JACK_ROOT/lib/npm.sh"
 . "$JACK_ROOT/lib/docker.sh"
@@ -106,4 +112,37 @@ clean_snap() {
   while read -r name rev; do
     snap remove "$name" --revision="$rev"
   done <<< "$revs"
+}
+
+clean_gradle() {
+  parse_yes_only "$(jack_usage clean gradle)" "$@"
+  require_cmd gradle
+  local dir="${HOME:?}/.gradle/caches"
+  confirm_unless_yes "Stop the Gradle daemon and delete $dir?" "$ASSUME_YES" || return 1
+  gradle --stop
+  rm -rf -- "$dir"
+}
+
+clean_maven() {
+  parse_yes_only "$(jack_usage clean maven)" "$@"
+  local repo="${HOME:?}/.m2/repository" count
+  if [ ! -d "$repo" ]; then
+    echo "nothing to remove"
+    return 0
+  fi
+  count="$(find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -print | wc -l | tr -d ' ')"
+  if [ "$count" -eq 0 ]; then
+    echo "nothing to remove"
+    return 0
+  fi
+  confirm_unless_yes "Delete $count SNAPSHOT artifact(s) older than 90 days?" "$ASSUME_YES" || return 1
+  find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -exec rm -rf {} +
+}
+
+clean_cargo() {
+  parse_yes_only "$(jack_usage clean cargo)" "$@"
+  require_cmd cargo
+  confirm_unless_yes "Autoclean the cargo cache, installing cargo-cache if missing?" "$ASSUME_YES" || return 1
+  cargo cache --version >/dev/null 2>&1 || cargo install cargo-cache || die "cargo install failed"
+  cargo cache --autoclean
 }

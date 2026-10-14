@@ -210,3 +210,62 @@ fi'
   [ "$status" -eq 0 ]
   [[ "$output" == *"nothing to remove"* ]]
 }
+
+@test "gradle stops the daemon and deletes caches with -y" {
+  stub_cmd gradle ''
+  mkdir -p "$HOME/.gradle/caches/8.0"
+  run "$JACK" clean gradle -y
+  [ "$status" -eq 0 ]
+  logged "gradle --stop"
+  [ ! -e "$HOME/.gradle/caches" ]
+}
+
+@test "gradle keeps caches when declined" {
+  stub_cmd gradle ''
+  mkdir -p "$HOME/.gradle/caches/8.0"
+  run "$JACK" clean gradle <<< "n"
+  [ "$status" -eq 1 ]
+  [ -d "$HOME/.gradle/caches/8.0" ]
+  not_logged_like "^gradle"
+}
+
+@test "maven deletes only old SNAPSHOT artifacts" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/a/1.0-SNAPSHOT" "$repo/b/2.0-SNAPSHOT" "$repo/c/3.0"
+  touch -t 202001010000 "$repo/a/1.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$repo/a/1.0-SNAPSHOT" ]
+  [ -d "$repo/b/2.0-SNAPSHOT" ]
+  [ -d "$repo/c/3.0" ]
+}
+
+@test "maven with nothing old has nothing to remove" {
+  mkdir -p "$HOME/.m2/repository/b/2.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"nothing to remove"* ]]
+}
+
+@test "cargo autocleans when cargo-cache is present" {
+  stub_cmd cargo ''
+  run "$JACK" clean cargo -y
+  [ "$status" -eq 0 ]
+  logged "cargo cache --autoclean"
+  not_logged_like "cargo install"
+}
+
+@test "cargo installs cargo-cache first when missing" {
+  stub_cmd cargo '[ "$1 $2" = "cache --version" ] && exit 1; exit 0'
+  run "$JACK" clean cargo -y
+  [ "$status" -eq 0 ]
+  logged "cargo install cargo-cache"
+  logged "cargo cache --autoclean"
+}
+
+@test "cargo aborts when declined" {
+  stub_cmd cargo ''
+  run "$JACK" clean cargo <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^cargo"
+}
