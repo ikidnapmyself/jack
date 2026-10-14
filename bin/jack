@@ -41,6 +41,12 @@ action_help() {
 main() {
   local theme="${1:-}" action="${2:-}" fn
 
+  if [ "$theme" = __complete ]; then
+    shift
+    jack_complete "$@"
+    return 0
+  fi
+
   if [ -z "$theme" ] || [ "$theme" = -h ] || [ "$theme" = --help ] || [ "$theme" = help ]; then
     list_themes
     return 0

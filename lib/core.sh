@@ -109,3 +109,39 @@ jack_print_actions() {
     printf '  %-18s %s\n' "$(printf %s "$act" | tr _ -)" "$(jack_meta "$1" DOC "$act")"
   done
 }
+
+_jack_candidate() {
+  if [ "$JACK_COMPLETE_DESC" -eq 1 ]; then
+    printf '%s:%s\n' "$1" "$2"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+jack_complete() {
+  JACK_COMPLETE_DESC=0
+  if [ "${1:-}" = --desc ]; then
+    JACK_COMPLETE_DESC=1
+    shift
+  fi
+  local name act
+  case $# in
+    0|1)
+      for name in $(jack_themes); do
+        _jack_candidate "$name" "$(jack_desc "$name")"
+      done
+      _jack_candidate help "Show help"
+      ;;
+    2)
+      case "$1" in
+        ''|*[!a-z]*) return 0 ;;
+      esac
+      { [ "$1" != core ] && [ -f "$JACK_ROOT/lib/$1.sh" ]; } || return 0
+      for act in $(jack_actions "$1"); do
+        _jack_candidate "$(printf %s "$act" | tr _ -)" "$(jack_meta "$1" DOC "$act")"
+      done
+      _jack_candidate help "Show help"
+      ;;
+  esac
+  return 0
+}
