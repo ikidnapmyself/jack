@@ -31,6 +31,8 @@ JACK_USAGE_maven="[-y]"
 JACK_USAGE_cargo="[-y]"
 JACK_DOC_list="Show every clean action and whether it can run on this machine"
 JACK_USAGE_list=""
+JACK_DOC_all="Run every available clean action except gradle, maven and cargo"
+JACK_USAGE_all="[-y]"
 
 . "$JACK_ROOT/lib/npm.sh"
 . "$JACK_ROOT/lib/docker.sh"
@@ -57,6 +59,13 @@ _clean_available() {
     journal) [ "$os" = Linux ] && command -v journalctl >/dev/null 2>&1 ;;
     *) command -v "$1" >/dev/null 2>&1 ;;
   esac
+}
+
+_clean_needs_root() {
+  case "$1" in
+    apt|journal|snap) return 0 ;;
+  esac
+  return 1
 }
 
 clean_pip() { _clean_simple pip $# pip cache purge; }
@@ -169,4 +178,36 @@ clean_list() {
     if _clean_available "$act"; then ok=yes; else ok=no; fi
     printf '%-10s %-4s %s\n' "$act" "$ok" "$(jack_meta clean DOC "$act")"
   done
+}
+
+clean_all() {
+  parse_yes_only "$(jack_usage clean all)" "$@"
+  local act todo="" args failed=""
+  for act in $(jack_actions clean); do
+    case "$act" in list|all|gradle|maven|cargo) continue ;; esac
+    if ! _clean_available "$act"; then
+      echo "skip $act, not available"
+      continue
+    fi
+    if _clean_needs_root "$act" && [ "$(id -u)" -ne 0 ]; then
+      echo "skip $act, needs root: sudo jack clean $act"
+      continue
+    fi
+    todo="$todo $act"
+  done
+  if [ -z "$todo" ]; then
+    echo "nothing to clean"
+    return 0
+  fi
+  confirm_unless_yes "Run:$todo?" "$ASSUME_YES" || return 1
+  for act in $todo; do
+    echo "==> $act"
+    args=""
+    case "$act" in xcode|snap|docker) args="-y" ;; esac
+    ( "clean_$act" $args ) || failed="$failed $act"
+  done
+  if [ -n "$failed" ]; then
+    echo "failed:$failed" >&2
+    return 1
+  fi
 }

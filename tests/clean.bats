@@ -298,3 +298,93 @@ fi'
   [[ "$output" == *"usage: jack clean list"* ]] || false
   [ "$status" -eq 2 ]
 }
+
+@test "all runs available actions and skips the rest" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd pip ''
+  stub_cmd npm ''
+  stub_cmd docker ''
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  logged "pip cache purge"
+  logged "npm cache clear --force"
+  logged "docker system prune -f"
+  [[ "$output" == *"skip pnpm, not available"* ]]
+}
+
+@test "all never runs gradle, maven or cargo" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd gradle ''
+  stub_cmd cargo ''
+  mkdir -p "$HOME/.m2/repository/a/1.0-SNAPSHOT"
+  touch -t 202001010000 "$HOME/.m2/repository/a/1.0-SNAPSHOT"
+  stub_cmd pip ''
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  not_logged_like "^gradle"
+  not_logged_like "^cargo"
+  [ -d "$HOME/.m2/repository/a/1.0-SNAPSHOT" ]
+}
+
+@test "all skips root actions when not root and prints the sudo line" {
+  export JACK_UNAME=Linux
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd id 'echo 501'
+  stub_cmd apt ''
+  run "$JACK" clean all -y
+  [[ "$output" == *"skip apt, needs root: sudo jack clean apt"* ]] || false
+  not_logged_like "^apt"
+}
+
+@test "all runs root actions as root" {
+  export JACK_UNAME=Linux
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd id 'echo 0'
+  stub_cmd apt ''
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  logged "apt clean"
+}
+
+@test "all asks once and aborts when declined" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd pip ''
+  stub_cmd npm ''
+  run "$JACK" clean all <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^pip"
+  not_logged_like "^npm"
+}
+
+@test "all runs everything after one yes" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd pip ''
+  stub_cmd npm ''
+  run "$JACK" clean all <<< "y"
+  [ "$status" -eq 0 ]
+  logged "pip cache purge"
+  logged "npm cache clear --force"
+}
+
+@test "all keeps going after a failure and exits non-zero" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  stub_cmd pip 'exit 1'
+  stub_cmd npm ''
+  run "$JACK" clean all -y
+  [ "$status" -eq 1 ]
+  logged "npm cache clear --force"
+  [[ "$output" == *"failed: pip"* ]]
+}
+
+@test "all with nothing available says so" {
+  export JACK_UNAME=Darwin
+  PATH="$STUB_DIR:/usr/bin:/bin"
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"nothing to clean"* ]]
+}
