@@ -37,3 +37,40 @@ setup() {
   [[ "$output" == *"usage: jack clean pip"* ]] || false
   not_logged_like "^pip"
 }
+
+@test "npm delegates to npm cache-clear" {
+  stub_cmd npm ''
+  run "$JACK" clean npm
+  [ "$status" -eq 0 ]
+  logged "npm cache clear --force"
+}
+
+@test "npm rejects extra arguments" {
+  stub_cmd npm ''
+  run "$JACK" clean npm extra
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"usage: jack clean npm"* ]] || false
+  not_logged_like "^npm"
+}
+
+@test "docker prunes with -y" {
+  stub_cmd docker ''
+  run "$JACK" clean docker -y
+  [ "$status" -eq 0 ]
+  logged "docker system prune -f"
+}
+
+@test "docker aborts when declined" {
+  stub_cmd docker ''
+  run "$JACK" clean docker <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^docker"
+}
+
+@test "docker rejects unknown flags" {
+  stub_cmd docker ''
+  run "$JACK" clean docker --volumes
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"usage: jack clean docker"* ]] || false
+  not_logged_like "^docker"
+}
