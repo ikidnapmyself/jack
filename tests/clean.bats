@@ -214,6 +214,41 @@ fi'
   [[ "$output" == *"sudo jack clean snap"* ]]
 }
 
+@test "snap keeps an active snap whose name contains disabled" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'if [ "$1" = list ]; then
+  printf "Name Version Rev Tracking Publisher Notes\ndisabled-tool 1 5 latest pub -\ncore20 1 1 latest canonical disabled\n"
+fi'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 0 ]
+  logged "snap remove core20 --revision=1"
+  not_logged_like "disabled-tool"
+}
+
+@test "snap exits non-zero when a remove fails and keeps going" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'if [ "$1" = list ]; then
+  printf "Name Version Rev Tracking Publisher Notes\ncore20 1 1 latest canonical disabled\nlxd 1 2 latest canonical disabled\n"
+elif [ "$1" = remove ] && [ "$2" = core20 ]; then
+  exit 1
+fi'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 1 ]
+  logged "snap remove lxd --revision=2"
+}
+
+@test "snap fails when snap list fails" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'exit 1'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"snap list failed"* ]] || false
+  not_logged_like "^snap remove"
+}
+
 @test "snap with no disabled revisions has nothing to remove" {
   export JACK_UNAME=Linux
   stub_cmd id 'echo 0'

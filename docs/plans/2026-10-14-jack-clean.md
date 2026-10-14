@@ -376,6 +376,41 @@ fi'
   [[ "$output" == *"sudo jack clean snap"* ]]
 }
 
+@test "snap keeps an active snap whose name contains disabled" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'if [ "$1" = list ]; then
+  printf "Name Version Rev Tracking Publisher Notes\ndisabled-tool 1 5 latest pub -\ncore20 1 1 latest canonical disabled\n"
+fi'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 0 ]
+  logged "snap remove core20 --revision=1"
+  not_logged_like "disabled-tool"
+}
+
+@test "snap exits non-zero when a remove fails and keeps going" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'if [ "$1" = list ]; then
+  printf "Name Version Rev Tracking Publisher Notes\ncore20 1 1 latest canonical disabled\nlxd 1 2 latest canonical disabled\n"
+elif [ "$1" = remove ] && [ "$2" = core20 ]; then
+  exit 1
+fi'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 1 ]
+  logged "snap remove lxd --revision=2"
+}
+
+@test "snap fails when snap list fails" {
+  export JACK_UNAME=Linux
+  stub_cmd id 'echo 0'
+  stub_cmd snap 'exit 1'
+  run "$JACK" clean snap -y
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"snap list failed"* ]] || false
+  not_logged_like "^snap remove"
+}
+
 @test "snap with no disabled revisions has nothing to remove" {
   export JACK_UNAME=Linux
   stub_cmd id 'echo 0'
@@ -455,8 +490,9 @@ clean_snap() {
   parse_yes_only "$(jack_usage clean snap)" "$@"
   require_root clean snap
   require_cmd snap
-  local revs count name rev
-  revs="$(snap list --all | awk '/disabled/ {print $1, $3}')"
+  local listing revs count name rev failed=0
+  listing="$(snap list --all)" || die "snap list failed"
+  revs="$(printf '%s\n' "$listing" | awk '$NF ~ /(^|,)disabled(,|$)/ {print $1, $3}')"
   if [ -z "$revs" ]; then
     echo "nothing to remove"
     return 0
@@ -464,8 +500,9 @@ clean_snap() {
   count="$(printf '%s\n' "$revs" | wc -l | tr -d ' ')"
   confirm_unless_yes "Remove $count old snap revision(s)?" "$ASSUME_YES" || return 1
   while read -r name rev; do
-    snap remove "$name" --revision="$rev"
+    snap remove "$name" --revision="$rev" || failed=1
   done <<< "$revs"
+  return "$failed"
 }
 ```
 

@@ -124,8 +124,9 @@ clean_snap() {
   parse_yes_only "$(jack_usage clean snap)" "$@"
   require_root clean snap
   require_cmd snap
-  local revs count name rev
-  revs="$(snap list --all | awk '/disabled/ {print $1, $3}')"
+  local listing revs count name rev failed=0
+  listing="$(snap list --all)" || die "snap list failed"
+  revs="$(printf '%s\n' "$listing" | awk '$NF ~ /(^|,)disabled(,|$)/ {print $1, $3}')"
   if [ -z "$revs" ]; then
     echo "nothing to remove"
     return 0
@@ -133,8 +134,9 @@ clean_snap() {
   count="$(printf '%s\n' "$revs" | wc -l | tr -d ' ')"
   confirm_unless_yes "Remove $count old snap revision(s)?" "$ASSUME_YES" || return 1
   while read -r name rev; do
-    snap remove "$name" --revision="$rev"
+    snap remove "$name" --revision="$rev" || failed=1
   done <<< "$revs"
+  return "$failed"
 }
 
 clean_gradle() {
