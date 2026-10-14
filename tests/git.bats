@@ -41,6 +41,43 @@ setup() {
   run "$JACK" git reset-remote -y
   [ "$status" -eq 0 ]
   [[ "$output" == *"dirty"* ]]
+  [ "$(cat f)" = "one" ]
+  [ -n "$(git for-each-ref refs/heads/backup)" ]
+}
+
+@test "reset-remote aborts when the backup branch cannot be created" {
+  git branch backup
+  old="$(git rev-parse HEAD)"
+  run "$JACK" git reset-remote -y
+  [ "$status" -eq 1 ]
+  [ "$(git rev-parse HEAD)" = "$old" ]
+  [[ "$output" == *"could not create"* ]]
+}
+
+@test "reset-remote aborts when the fetch fails" {
+  old="$(git rev-parse HEAD)"
+  git remote set-url origin /nonexistent
+  run "$JACK" git reset-remote -y
+  [ "$status" -eq 1 ]
+  [ "$(git rev-parse HEAD)" = "$old" ]
+}
+
+@test "reset-remote skips the fetch for a local upstream" {
+  git switch -q -c feature
+  git branch -q --set-upstream-to=main
+  git remote set-url origin /nonexistent
+  run "$JACK" git reset-remote -y
+  [ "$status" -eq 0 ]
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse main)" ]
+}
+
+@test "reset-remote aborts when the branch remote is empty" {
+  git config branch.main.remote ""
+  old="$(git rev-parse HEAD)"
+  run "$JACK" git reset-remote -y
+  [ "$status" -eq 1 ]
+  [ "$(git rev-parse HEAD)" = "$old" ]
+  [[ "$output" == *"no upstream"* ]]
 }
 
 @test "reset-remote without an upstream exits 1" {

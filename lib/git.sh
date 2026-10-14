@@ -9,16 +9,20 @@ JACK_ALIAS_submodules="gsub"
 git_reset_remote() {
   parse_yes_only "jack git reset-remote [-y]" "$@"
   require_cmd git
-  local branch upstream backup
+  local branch upstream remote backup
   branch="$(git symbolic-ref --short -q HEAD)" || die "detached HEAD, nothing to reset"
   upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)" || die "$branch has no upstream"
-  git fetch "${upstream%%/*}"
+  remote="$(git config "branch.$branch.remote")"
+  [ -n "$remote" ] || die "$branch has no upstream remote"
+  if [ "$remote" != . ]; then
+    git fetch "$remote" || die "fetch failed"
+  fi
   backup="backup/$branch-$(date +%Y%m%d-%H%M%S)"
   if [ -n "$(git status --porcelain)" ]; then
     echo "${YELLOW}working tree is dirty, uncommitted changes will be lost${RESET}"
   fi
   confirm_unless_yes "Reset $branch to $upstream? Backup: $backup" "$ASSUME_YES" || return 1
-  git branch "$backup"
+  git branch "$backup" || die "could not create $backup"
   git reset --hard "$upstream"
 }
 
