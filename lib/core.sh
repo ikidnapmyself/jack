@@ -99,6 +99,10 @@ jack_usage() {
   printf 'jack %s %s%s\n' "$theme" "$(printf %s "$2" | tr _ -)" "${args:+ $args}"
 }
 
+jack_desc() {
+  sed -n 's/^JACK_DESC="\(.*\)"$/\1/p' "$JACK_ROOT/lib/$1.sh" | head -n 1
+}
+
 jack_print_actions() {
   local act
   for act in $(jack_actions "$1"); do

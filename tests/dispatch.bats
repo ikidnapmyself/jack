@@ -73,3 +73,37 @@ setup() {
   [[ "$output" == *"two-words"* ]]
   [[ "$output" == *"Say ok"* ]]
 }
+
+@test "help lists themes like no args" {
+  run "$JACK" help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"List and kill processes on TCP ports"* ]]
+}
+
+@test "theme help lists actions" {
+  run "$JACK" port help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kill"* ]]
+}
+
+@test "action help words print doc and usage without running the action" {
+  local word
+  for word in -h --help help; do
+    run "$JACK" port kill "$word"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Kill whatever listens on a port"* ]]
+    [[ "$output" == *"usage: jack port kill <port> [-y]"* ]]
+  done
+}
+
+@test "action help on a no-arg action has no trailing space" {
+  run "$JACK" git remote-url -h
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"usage: jack git remote-url" ]]
+}
+
+@test "help for an unknown action still exits 2" {
+  run "$JACK" port nope -h
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown action"* ]]
+}

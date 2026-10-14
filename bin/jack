@@ -20,7 +20,7 @@ list_themes() {
   echo
   echo "themes:"
   for name in $(jack_themes); do
-    desc="$(sed -n 's/^JACK_DESC="\(.*\)"$/\1/p' "$JACK_ROOT/lib/$name.sh" | head -n 1)"
+    desc="$(jack_desc "$name")"
     printf '  %-10s %s\n' "$name" "$desc"
   done
 }
@@ -32,10 +32,16 @@ list_actions() {
   jack_print_actions "$1"
 }
 
+action_help() {
+  jack_meta "$1" DOC "$(printf %s "$2" | tr - _)"
+  echo
+  echo "usage: $(jack_usage "$1" "$2")"
+}
+
 main() {
   local theme="${1:-}" action="${2:-}" fn
 
-  if [ -z "$theme" ] || [ "$theme" = -h ] || [ "$theme" = --help ]; then
+  if [ -z "$theme" ] || [ "$theme" = -h ] || [ "$theme" = --help ] || [ "$theme" = help ]; then
     list_themes
     return 0
   fi
@@ -48,7 +54,7 @@ main() {
   fi
   . "$JACK_ROOT/lib/$theme.sh"
 
-  if [ -z "$action" ]; then
+  if [ -z "$action" ] || [ "$action" = help ]; then
     list_actions "$theme"
     return 0
   fi
@@ -58,6 +64,10 @@ main() {
   esac
   fn="${theme}_$(printf %s "$action" | tr - _)"
   declare -F "$fn" >/dev/null || die_usage "unknown action: $theme $action"
+
+  case "${3:-}" in
+    -h|--help|help) action_help "$theme" "$action"; return 0 ;;
+  esac
 
   shift 2
   "$fn" "$@"
