@@ -16,7 +16,7 @@ npm_global_setup() {
   local line='export PATH=~/.npm-global/bin:$PATH'
   confirm_unless_yes "Set npm prefix to $dir and edit $profile?" "$ASSUME_YES" || return 1
   mkdir -p "$dir"
-  npm config set prefix "$dir"
+  npm config set prefix "$dir" || die "npm config failed"
   if grep -qxF "$line" "$profile" 2>/dev/null; then
     echo "$profile already exports $dir/bin"
   else

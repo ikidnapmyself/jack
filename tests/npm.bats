@@ -37,3 +37,10 @@ setup() {
   [ ! -e "$HOME/.npm-global" ]
   not_logged_like "^npm config"
 }
+
+@test "global-setup stops when npm config fails" {
+  stub_cmd npm 'exit 1'
+  run "$JACK" npm global-setup -y
+  [ "$status" -eq 1 ]
+  [ ! -e "$HOME/.profile" ]
+}
