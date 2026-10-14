@@ -99,9 +99,7 @@ make_sized_files() {
   make_sized_files
   run "$JACK" ubuntu big-files 1k "$BIG_DIR"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"large"* ]]
-  [[ "$output" == *"large2"* ]]
-  [[ "$output" != *"small"* ]]
+  [ "$(printf '%s\n' "$output" | sort)" = "$(printf '%s\n%s' "$BIG_DIR/large" "$BIG_DIR/sub/large2")" ]
 }
 
 @test "big-files with no matches exits 1" {
@@ -137,8 +135,52 @@ make_sized_files() {
 
 @test "big-files-delete with no matches exits 1 without prompting" {
   make_sized_files
-  run "$JACK" ubuntu big-files-delete 1M "$BIG_DIR" -y
+  run "$JACK" ubuntu big-files-delete 1M "$BIG_DIR" < /dev/null
   [ "$status" -eq 1 ]
+  [[ "$output" != *"[y/N]"* ]]
+}
+
+@test "big-files rejects sizes without a non-zero number and a unit" {
+  make_sized_files
+  for size in 0 100 0k 5c 5b 05k k; do
+    run "$JACK" ubuntu big-files "$size" "$BIG_DIR"
+    [ "$status" -eq 2 ]
+  done
+  [ -e "$BIG_DIR/large" ]
+}
+
+@test "big-files-delete rejects sizes without a non-zero number and a unit" {
+  make_sized_files
+  for size in 0 100 0k 5c 5b 05k k; do
+    run "$JACK" ubuntu big-files-delete "$size" "$BIG_DIR" -y
+    [ "$status" -eq 2 ]
+  done
+  [ -e "$BIG_DIR/large" ]
+  [ -e "$BIG_DIR/sub/large2" ]
+  [ -e "$BIG_DIR/small" ]
+}
+
+@test "big-files-delete deletes the listed files with spaces in names" {
+  make_sized_files
+  head -c 5000 /dev/zero > "$BIG_DIR/with space"
+  run "$JACK" ubuntu big-files-delete 1k "$BIG_DIR" -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$BIG_DIR/with space" ]
+  [ -e "$BIG_DIR/small" ]
+}
+
+@test "count and big-files reject a directory starting with a dash" {
+  run "$JACK" ubuntu count -x
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"invalid directory"* ]]
+  run "$JACK" ubuntu big-files 1k -x
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"invalid directory"* ]]
+}
+
+@test "big-files-delete rejects a directory starting with a dash" {
+  run "$JACK" ubuntu big-files-delete 1k -x
+  [ "$status" -eq 2 ]
 }
 
 @test "mount needs root" {

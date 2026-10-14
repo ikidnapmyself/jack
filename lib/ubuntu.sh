@@ -5,7 +5,7 @@ JACK_DOC_port_test="Check whether a host accepts TCP connections on a port"
 JACK_DOC_count="Count files under a directory"
 JACK_DOC_mysql_config="Show where MySQL looks for option files"
 JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email"
-JACK_DOC_big_files="List files over a size such as 500k, 10M or 1G"
+JACK_DOC_big_files="List files over a size such as 500k, 10M or 1G, a unit k, M or G is required"
 JACK_DOC_big_files_delete="Delete files over a size after showing how many match"
 JACK_DOC_mount="Mount a device at a target directory, needs root"
 
@@ -41,7 +41,7 @@ ubuntu_port_test() {
 ubuntu_count() {
   [ $# -le 1 ] || die_usage "usage: jack ubuntu count [dir]"
   local dir="${1:-.}"
-  [ -d "$dir" ] || die_usage "not a directory: $dir"
+  _ubuntu_validate_dir "$dir"
   find "$dir" -type f | wc -l | tr -d ' '
 }
 
@@ -55,9 +55,22 @@ ubuntu_ssh_key() {
   ssh_keygen_for ubuntu "$@"
 }
 
-_ubuntu_validate_size() {
+_ubuntu_validate_dir() {
   case "$1" in
-    ''|*[!0-9kMGcb]*|*[kMGcb]?*|[kMGcb]*) die_usage "invalid size: $1" ;;
+    -*) die_usage "invalid directory: $1" ;;
+  esac
+  [ -d "$1" ] || die_usage "not a directory: $1"
+}
+
+_ubuntu_validate_size() {
+  local num="${1%[kMG]}"
+  [ "$num" != "$1" ] || die_usage "invalid size: $1"
+  case "$num" in
+    [1-9]*) ;;
+    *) die_usage "invalid size: $1" ;;
+  esac
+  case "$num" in
+    *[!0-9]*) die_usage "invalid size: $1" ;;
   esac
 }
 
@@ -69,7 +82,7 @@ ubuntu_big_files() {
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "usage: jack ubuntu big-files <size> [dir]"
   _ubuntu_validate_size "$1"
   local dir="${2:-.}" matches
-  [ -d "$dir" ] || die_usage "not a directory: $dir"
+  _ubuntu_validate_dir "$dir"
   matches="$(_ubuntu_big_matches "$1" "$dir")"
   if [ -z "$matches" ]; then
     echo "no files over $1 in $dir" >&2
@@ -91,8 +104,8 @@ ubuntu_big_files_delete() {
   done
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "$usage"
   _ubuntu_validate_size "$1"
-  local dir="${2:-.}" matches count
-  [ -d "$dir" ] || die_usage "not a directory: $dir"
+  local dir="${2:-.}" matches count f
+  _ubuntu_validate_dir "$dir"
   matches="$(_ubuntu_big_matches "$1" "$dir")"
   if [ -z "$matches" ]; then
     echo "no files over $1 in $dir" >&2
@@ -101,7 +114,9 @@ ubuntu_big_files_delete() {
   printf '%s\n' "$matches"
   count="$(printf '%s\n' "$matches" | wc -l | tr -d ' ')"
   confirm_unless_yes "Delete $count file(s) over $1 in $dir?" "$assume_yes" || return 1
-  find "$dir" -type f -size +"$1" -delete
+  while IFS= read -r f; do
+    rm -- "$f"
+  done <<< "$matches"
 }
 
 ubuntu_mount() {
