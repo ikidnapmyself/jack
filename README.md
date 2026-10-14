@@ -15,13 +15,16 @@ jack                    # list themes
 jack port               # list actions with descriptions
 jack port list [port]
 jack port kill <port> [-y]
+jack clean list         # which cleanups can run on this machine
+jack clean pip          # purge one cache
+jack clean all [-y]     # run every available cleanup
 jack cheat list [theme] # every action with its description
 jack alias print        # alias lines for aliased actions
 jack help               # same as jack
 jack port kill -h       # doc and usage for one action
 ```
 
-Themes: `port`, `docker`, `git`, `npm`, `mysql`, `mac`, `ubuntu`, `cheat`, `alias`, `completion`.
+Themes: `port`, `docker`, `git`, `npm`, `mysql`, `mac`, `ubuntu`, `clean`, `cheat`, `alias`, `completion`.
 
 Action names use hyphens on the command line and underscores in code, so `jack mac flush-dns` runs `mac_flush_dns`. Destructive actions prompt and accept `-y`. Actions that need root exit with the `sudo jack ...` line to run, jack never calls sudo itself.
 
@@ -40,6 +43,10 @@ command -v jack >/dev/null && eval "$(jack completion zsh)"
 ```
 
 Use `bash` instead of `zsh` in `.bashrc`. In `.zshrc`, put the line after `compinit`, otherwise nothing registers.
+
+### Clean
+
+`jack clean` mirrors the remedies suggested by the disk checkers in [server-monitoring](https://github.com/ikidnapmyself/server-monitoring/tree/main/apps/checkers/checkers/disk). `jack clean all` skips gradle, maven and cargo, and prints the `sudo jack clean ...` line for actions that need root.
 
 ## Add a theme
 
