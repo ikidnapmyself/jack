@@ -45,3 +45,26 @@ stop_listener() {
 port_is_free() {
   [ -z "$(lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null)" ]
 }
+
+setup_stubs() {
+  STUB_DIR="$BATS_TEST_TMPDIR/stubs"
+  STUB_LOG="$BATS_TEST_TMPDIR/stub.log"
+  mkdir -p "$STUB_DIR"
+  : > "$STUB_LOG"
+  PATH="$STUB_DIR:$PATH"
+  export STUB_LOG
+}
+
+stub_cmd() {
+  local name="$1" body="${2:-}"
+  printf '#!/usr/bin/env bash\necho "%s $*" >> "$STUB_LOG"\n%s\n' "$name" "$body" > "$STUB_DIR/$name"
+  chmod +x "$STUB_DIR/$name"
+}
+
+logged() {
+  grep -qxF -- "$1" "$STUB_LOG"
+}
+
+not_logged_like() {
+  ! grep -q -- "$1" "$STUB_LOG"
+}

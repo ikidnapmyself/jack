@@ -33,3 +33,24 @@ confirm() {
     *) return 1 ;;
   esac
 }
+
+confirm_unless_yes() {
+  [ "$2" -eq 1 ] && return 0
+  confirm "$1" || { echo "aborted" >&2; return 1; }
+}
+
+parse_yes_only() {
+  local usage="$1" arg
+  shift
+  ASSUME_YES=0
+  for arg in "$@"; do
+    case "$arg" in
+      -y) ASSUME_YES=1 ;;
+      *) die_usage "usage: $usage" ;;
+    esac
+  done
+}
+
+require_root() {
+  [ "$(id -u)" -eq 0 ] || die "needs root, run: sudo jack $*"
+}
