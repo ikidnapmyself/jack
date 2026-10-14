@@ -14,7 +14,7 @@ docker_stop() {
   parse_yes_only "jack docker stop [-y]" "$@"
   require_cmd docker
   local ids count
-  ids="$(docker ps -q)"
+  ids="$(docker ps -q)" || die "docker ps failed"
   if [ -z "$ids" ]; then
     echo "nothing to stop"
     return 0
@@ -28,7 +28,7 @@ docker_rm() {
   parse_yes_only "jack docker rm [-y]" "$@"
   require_cmd docker
   local ids count
-  ids="$(docker ps -aq -f status=exited)"
+  ids="$(docker ps -aq -f status=exited)" || die "docker ps failed"
   if [ -z "$ids" ]; then
     echo "nothing to remove"
     return 0

@@ -112,3 +112,19 @@ setup() {
   [ "$status" -eq 2 ]
   not_logged_like "^docker-compose"
 }
+
+@test "stop surfaces a docker ps failure" {
+  stub_cmd docker 'case "$1" in ps) exit 1 ;; esac'
+  run "$JACK" docker stop -y
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"docker ps failed"* ]]
+  not_logged_like "^docker stop"
+}
+
+@test "rm surfaces a docker ps failure" {
+  stub_cmd docker 'case "$1" in ps) exit 1 ;; esac'
+  run "$JACK" docker rm -y
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"docker ps failed"* ]]
+  not_logged_like "^docker rm"
+}
