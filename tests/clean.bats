@@ -34,6 +34,6 @@ setup() {
   stub_cmd pip ''
   run "$JACK" clean pip extra
   [ "$status" -eq 2 ]
-  [[ "$output" == *"usage: jack clean pip"* ]]
+  [[ "$output" == *"usage: jack clean pip"* ]] || false
   not_logged_like "^pip"
 }
