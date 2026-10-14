@@ -76,3 +76,26 @@ ssh_keygen_for() {
   ssh-keygen -t ed25519 -C "$1" -f "$path"
   echo "public key: $path.pub"
 }
+
+jack_themes() {
+  local file name
+  for file in "$JACK_ROOT"/lib/*.sh; do
+    name="$(basename "$file" .sh)"
+    [ "$name" = core ] || echo "$name"
+  done
+}
+
+jack_actions() {
+  sed -n "s/^$1_\([a-z_]*\)()[[:space:]]*{.*/\1/p" "$JACK_ROOT/lib/$1.sh"
+}
+
+jack_meta() {
+  sed -n "s/^JACK_$2_$3=\"\(.*\)\"\$/\1/p" "$JACK_ROOT/lib/$1.sh" | head -n 1
+}
+
+jack_print_actions() {
+  local act
+  for act in $(jack_actions "$1"); do
+    printf '  %-18s %s\n' "$(printf %s "$act" | tr _ -)" "$(jack_meta "$1" DOC "$act")"
+  done
+}

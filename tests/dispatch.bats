@@ -55,3 +55,20 @@ setup() {
   run "$JACK" port _validate
   [ "$status" -eq 2 ]
 }
+
+@test "theme alone shows action docs" {
+  run "$JACK" port
+  [[ "$output" == *"Kill whatever listens on a port"* ]]
+}
+
+@test "hyphenated action runs the underscore function" {
+  mkdir -p "$BATS_TEST_TMPDIR/root"
+  cp -R "$BATS_TEST_DIRNAME/../bin" "$BATS_TEST_DIRNAME/../lib" "$BATS_TEST_TMPDIR/root/"
+  printf 'JACK_DESC="fixture"\nJACK_DOC_two_words="Say ok"\nfx_two_words() { echo ok; }\n' > "$BATS_TEST_TMPDIR/root/lib/fx.sh"
+  run "$BATS_TEST_TMPDIR/root/bin/jack" fx two-words
+  [ "$status" -eq 0 ]
+  [ "$output" = "ok" ]
+  run "$BATS_TEST_TMPDIR/root/bin/jack" fx
+  [[ "$output" == *"two-words"* ]]
+  [[ "$output" == *"Say ok"* ]]
+}
