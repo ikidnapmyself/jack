@@ -552,8 +552,10 @@ completion_bash() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage completion bash)"
   cat <<'EOF'
 _jack_complete() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local -a words=("${COMP_WORDS[@]:1:COMP_CWORD}")
   local IFS=$'\n'
-  COMPREPLY=($(compgen -W "$(jack __complete "${COMP_WORDS[@]:1:COMP_CWORD}" 2>/dev/null)" -- "${COMP_WORDS[COMP_CWORD]}"))
+  COMPREPLY=($(compgen -W "$(jack __complete "${words[@]}" 2>/dev/null)" -- "$cur"))
 }
 complete -F _jack_complete jack
 EOF
