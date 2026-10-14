@@ -52,8 +52,9 @@ setup() {
 }
 
 @test "helper functions are not callable as actions" {
-  run "$JACK" port _validate
+  run "$JACK" port _rows
   [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown action"* ]]
 }
 
 @test "theme alone shows action docs" {
