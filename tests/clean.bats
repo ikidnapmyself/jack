@@ -8,6 +8,18 @@ setup() {
   mkdir -p "$HOME"
 }
 
+isolate_path() {
+  local bin="$BATS_TEST_TMPDIR/bin" tool src
+  mkdir -p "$bin"
+  for tool in bash env sed tr head wc awk id find rm mkdir chmod touch basename dirname cat uname readlink grep sort; do
+    src="$(command -v "$tool")"
+    case "$src" in
+      /*) ln -sf "$src" "$bin/$tool" ;;
+    esac
+  done
+  PATH="$STUB_DIR:$bin"
+}
+
 @test "simple actions run their command" {
   local row act cmd
   for row in "pip|pip cache purge" "yarn|yarn cache clean" "pnpm|pnpm store prune" "composer|composer clear-cache" "go|go clean -modcache"; do
@@ -22,7 +34,7 @@ setup() {
 
 @test "simple actions fail when the tool is missing" {
   local act
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   for act in pip yarn pnpm composer go; do
     run "$JACK" clean "$act"
     [ "$status" -eq 1 ] || { echo "$act status $status"; return 1; }
@@ -272,7 +284,7 @@ fi'
 
 @test "list shows installed state for every action" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd pip ''
   run "$JACK" clean list
   [ "$status" -eq 0 ]
@@ -301,7 +313,7 @@ fi'
 
 @test "all runs available actions and skips the rest" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd pip ''
   stub_cmd npm ''
   stub_cmd docker ''
@@ -315,7 +327,7 @@ fi'
 
 @test "all never runs gradle, maven or cargo" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd gradle ''
   stub_cmd cargo ''
   mkdir -p "$HOME/.m2/repository/a/1.0-SNAPSHOT"
@@ -330,7 +342,7 @@ fi'
 
 @test "all skips root actions when not root and prints the sudo line" {
   export JACK_UNAME=Linux
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd id 'echo 501'
   stub_cmd apt ''
   run "$JACK" clean all -y
@@ -340,7 +352,7 @@ fi'
 
 @test "all runs root actions as root" {
   export JACK_UNAME=Linux
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd id 'echo 0'
   stub_cmd apt ''
   run "$JACK" clean all -y
@@ -350,7 +362,7 @@ fi'
 
 @test "all asks once and aborts when declined" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd pip ''
   stub_cmd npm ''
   run "$JACK" clean all <<< "n"
@@ -361,7 +373,7 @@ fi'
 
 @test "all runs everything after one yes" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd pip ''
   stub_cmd npm ''
   run "$JACK" clean all <<< "y"
@@ -372,7 +384,7 @@ fi'
 
 @test "all keeps going after a failure and exits non-zero" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   stub_cmd pip 'exit 1'
   stub_cmd npm ''
   run "$JACK" clean all -y
@@ -383,8 +395,19 @@ fi'
 
 @test "all with nothing available says so" {
   export JACK_UNAME=Darwin
-  PATH="$STUB_DIR:/usr/bin:/bin"
+  isolate_path
   run "$JACK" clean all -y
   [ "$status" -eq 0 ]
   [[ "$output" == *"nothing to clean"* ]]
+}
+
+@test "isolated PATH hides real tools" {
+  local tool
+  isolate_path
+  for tool in docker snap journalctl apt pip npm brew; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      echo "$tool leaked"
+      false
+    fi
+  done
 }
