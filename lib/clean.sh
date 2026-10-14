@@ -148,18 +148,24 @@ clean_gradle() {
 
 clean_maven() {
   parse_yes_only "$(jack_usage clean maven)" "$@"
-  local repo="${HOME:?}/.m2/repository" count
+  local repo="${HOME:?}/.m2/repository" dir old=()
   if [ ! -d "$repo" ]; then
     echo "nothing to remove"
     return 0
   fi
-  count="$(find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -print | wc -l | tr -d ' ')"
-  if [ "$count" -eq 0 ]; then
+  while IFS= read -r -d '' dir; do
+    if [ -z "$(find "$dir" -type f -mtime -90 -print -quit)" ]; then
+      old+=("$dir")
+    fi
+  done < <(find "$repo" -type d -name '*-SNAPSHOT' -mtime +90 -prune -print0)
+  if [ "${#old[@]}" -eq 0 ]; then
     echo "nothing to remove"
     return 0
   fi
-  confirm_unless_yes "Delete $count SNAPSHOT artifact(s) older than 90 days?" "$ASSUME_YES" || return 1
-  find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -exec rm -rf {} +
+  confirm_unless_yes "Delete ${#old[@]} SNAPSHOT artifact(s) older than 90 days?" "$ASSUME_YES" || return 1
+  for dir in "${old[@]}"; do
+    rm -rf -- "$dir"
+  done
 }
 
 clean_cargo() {

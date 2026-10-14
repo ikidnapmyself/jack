@@ -491,7 +491,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - Modify: `lib/clean.sh`
 - Modify: `tests/clean.bats`
 
-Two choices differ from the upstream advice text and are worth a line in the commit body. Gradle removes the whole `~/.gradle/caches`, since "old version" dirs can't be told apart safely, and Gradle rebuilds it. Maven deletes SNAPSHOT artifacts older than 90 days with `find`, since `dependency:purge-local-repository` only works inside a project.
+Two choices differ from the upstream advice text and are worth a line in the commit body. Gradle removes the whole `~/.gradle/caches`, since "old version" dirs can't be told apart safely, and Gradle rebuilds it. Maven deletes SNAPSHOT directories older than 90 days that hold no recently modified file, using `find`, since `dependency:purge-local-repository` only works inside a project.
 
 **Step 1: Write the failing tests**
 
@@ -519,12 +519,43 @@ Append to `tests/clean.bats`:
 @test "maven deletes only old SNAPSHOT artifacts" {
   local repo="$HOME/.m2/repository"
   mkdir -p "$repo/a/1.0-SNAPSHOT" "$repo/b/2.0-SNAPSHOT" "$repo/c/3.0"
+  touch -t 202001010000 "$repo/a/1.0-SNAPSHOT/a.jar"
   touch -t 202001010000 "$repo/a/1.0-SNAPSHOT"
   run "$JACK" clean maven -y
   [ "$status" -eq 0 ]
   [ ! -e "$repo/a/1.0-SNAPSHOT" ]
   [ -d "$repo/b/2.0-SNAPSHOT" ]
   [ -d "$repo/c/3.0" ]
+}
+
+@test "maven keeps an old SNAPSHOT dir that has a recent file" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/a/1.0-SNAPSHOT"
+  touch "$repo/a/1.0-SNAPSHOT/a.jar"
+  touch -t 202001010000 "$repo/a/1.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ -f "$repo/a/1.0-SNAPSHOT/a.jar" ]
+}
+
+@test "maven ignores a SNAPSHOT file that is not a directory" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/a"
+  touch -t 202001010000 "$repo/a/x-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ -f "$repo/a/x-SNAPSHOT" ]
+}
+
+@test "maven handles directory names with spaces" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/my lib/1.0-SNAPSHOT"
+  touch -t 202001010000 "$repo/my lib/1.0-SNAPSHOT/a.jar"
+  touch -t 202001010000 "$repo/my lib/1.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$repo/my lib/1.0-SNAPSHOT" ]
+  [ -d "$repo/my lib" ]
 }
 
 @test "maven with nothing old has nothing to remove" {
@@ -590,18 +621,24 @@ clean_gradle() {
 
 clean_maven() {
   parse_yes_only "$(jack_usage clean maven)" "$@"
-  local repo="${HOME:?}/.m2/repository" count
+  local repo="${HOME:?}/.m2/repository" dir old=()
   if [ ! -d "$repo" ]; then
     echo "nothing to remove"
     return 0
   fi
-  count="$(find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -print | wc -l | tr -d ' ')"
-  if [ "$count" -eq 0 ]; then
+  while IFS= read -r -d '' dir; do
+    if [ -z "$(find "$dir" -type f -mtime -90 -print -quit)" ]; then
+      old+=("$dir")
+    fi
+  done < <(find "$repo" -type d -name '*-SNAPSHOT' -mtime +90 -prune -print0)
+  if [ "${#old[@]}" -eq 0 ]; then
     echo "nothing to remove"
     return 0
   fi
-  confirm_unless_yes "Delete $count SNAPSHOT artifact(s) older than 90 days?" "$ASSUME_YES" || return 1
-  find "$repo" -name '*-SNAPSHOT' -mtime +90 -prune -exec rm -rf {} +
+  confirm_unless_yes "Delete ${#old[@]} SNAPSHOT artifact(s) older than 90 days?" "$ASSUME_YES" || return 1
+  for dir in "${old[@]}"; do
+    rm -rf -- "$dir"
+  done
 }
 
 clean_cargo() {
@@ -764,6 +801,7 @@ Append to `tests/clean.bats`:
   stub_cmd gradle ''
   stub_cmd cargo ''
   mkdir -p "$HOME/.m2/repository/a/1.0-SNAPSHOT"
+  touch -t 202001010000 "$HOME/.m2/repository/a/1.0-SNAPSHOT/a.jar"
   touch -t 202001010000 "$HOME/.m2/repository/a/1.0-SNAPSHOT"
   stub_cmd pip ''
   run "$JACK" clean all -y

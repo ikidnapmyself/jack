@@ -244,12 +244,43 @@ fi'
 @test "maven deletes only old SNAPSHOT artifacts" {
   local repo="$HOME/.m2/repository"
   mkdir -p "$repo/a/1.0-SNAPSHOT" "$repo/b/2.0-SNAPSHOT" "$repo/c/3.0"
+  touch -t 202001010000 "$repo/a/1.0-SNAPSHOT/a.jar"
   touch -t 202001010000 "$repo/a/1.0-SNAPSHOT"
   run "$JACK" clean maven -y
   [ "$status" -eq 0 ]
   [ ! -e "$repo/a/1.0-SNAPSHOT" ]
   [ -d "$repo/b/2.0-SNAPSHOT" ]
   [ -d "$repo/c/3.0" ]
+}
+
+@test "maven keeps an old SNAPSHOT dir that has a recent file" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/a/1.0-SNAPSHOT"
+  touch "$repo/a/1.0-SNAPSHOT/a.jar"
+  touch -t 202001010000 "$repo/a/1.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ -f "$repo/a/1.0-SNAPSHOT/a.jar" ]
+}
+
+@test "maven ignores a SNAPSHOT file that is not a directory" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/a"
+  touch -t 202001010000 "$repo/a/x-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ -f "$repo/a/x-SNAPSHOT" ]
+}
+
+@test "maven handles directory names with spaces" {
+  local repo="$HOME/.m2/repository"
+  mkdir -p "$repo/my lib/1.0-SNAPSHOT"
+  touch -t 202001010000 "$repo/my lib/1.0-SNAPSHOT/a.jar"
+  touch -t 202001010000 "$repo/my lib/1.0-SNAPSHOT"
+  run "$JACK" clean maven -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$repo/my lib/1.0-SNAPSHOT" ]
+  [ -d "$repo/my lib" ]
 }
 
 @test "maven with nothing old has nothing to remove" {
@@ -331,6 +362,7 @@ fi'
   stub_cmd gradle ''
   stub_cmd cargo ''
   mkdir -p "$HOME/.m2/repository/a/1.0-SNAPSHOT"
+  touch -t 202001010000 "$HOME/.m2/repository/a/1.0-SNAPSHOT/a.jar"
   touch -t 202001010000 "$HOME/.m2/repository/a/1.0-SNAPSHOT"
   stub_cmd pip ''
   run "$JACK" clean all -y
