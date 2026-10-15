@@ -97,9 +97,9 @@ setup() {
 }
 
 @test "action help on a no-arg action has no trailing space" {
-  run "$JACK" git remote-url -h
+  run "$JACK" mac flush-dns -h
   [ "$status" -eq 0 ]
-  [[ "$output" == *"usage: jack git remote-url" ]]
+  [[ "$output" == *"usage: jack mac flush-dns" ]]
 }
 
 @test "help for an unknown action still exits 2" {

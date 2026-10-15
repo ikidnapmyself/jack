@@ -98,6 +98,6 @@ setup() {
 }
 
 @test "jack_usage accepts underscores and drops the space for no-arg actions" {
-  run jack_usage git remote_url
-  [ "$output" = "jack git remote-url" ]
+  run jack_usage mac flush_dns
+  [ "$output" = "jack mac flush-dns" ]
 }

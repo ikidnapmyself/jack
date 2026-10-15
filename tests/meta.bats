@@ -15,27 +15,6 @@ setup() {
   [ -z "$missing" ] || { echo "missing JACK_DOC:$missing"; return 1; }
 }
 
-@test "aliases are unique and well formed" {
-  local theme act name seen=" "
-  for theme in $(jack_themes); do
-    for act in $(jack_actions "$theme"); do
-      name="$(jack_meta "$theme" ALIAS "$act")"
-      [ -n "$name" ] || continue
-      case "$name" in
-        [a-z]*) ;;
-        *) echo "bad alias: $name"; return 1 ;;
-      esac
-      case "$name" in
-        *[!a-z0-9]*) echo "bad alias: $name"; return 1 ;;
-      esac
-      case "$seen" in
-        *" $name "*) echo "duplicate alias: $name"; return 1 ;;
-      esac
-      seen="$seen$name "
-    done
-  done
-}
-
 @test "themes and actions are discovered" {
   [ -n "$(jack_themes)" ]
   [ -n "$(jack_actions port)" ]

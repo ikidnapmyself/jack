@@ -19,22 +19,13 @@ jack clean list         # which cleanups can run on this machine
 jack clean pip          # purge one cache
 jack clean all [-y]     # run every available cleanup
 jack cheat list [theme] # every action with its description
-jack alias print        # alias lines for aliased actions
 jack help               # same as jack
 jack port kill -h       # doc and usage for one action
 ```
 
-Themes: `port`, `docker`, `git`, `npm`, `mysql`, `mac`, `ubuntu`, `clean`, `cheat`, `alias`, `completion`.
+Themes: `port`, `docker`, `npm`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`.
 
 Action names use hyphens on the command line and underscores in code, so `jack mac flush-dns` runs `mac_flush_dns`. Destructive actions prompt and accept `-y`. Actions that need root exit with the `sudo jack ...` line to run, jack never calls sudo itself.
-
-### Aliases
-
-```bash
-eval "$(jack alias print)"
-```
-
-Add that line to `.zshrc` or `.bashrc`.
 
 ### Completion
 
@@ -50,7 +41,7 @@ Use `bash` instead of `zsh` in `.bashrc`. In `.zshrc`, put the line after `compi
 
 ## Add a theme
 
-Create `lib/<theme>.sh` with a `JACK_DESC="..."` line and functions named `<theme>_<action>`. Prefix helpers with `_<theme>_`. Every action needs a `JACK_DOC_<action>="one line"` and a `JACK_USAGE_<action>="args"` assignment, and may add `JACK_ALIAS_<action>="name"`. Use an empty usage for actions without arguments. Error messages should call `jack_usage <theme> <action>` instead of repeating the string. Values must not contain double quotes. Tests fail when a doc or usage is missing or an alias repeats. Nothing else needs editing.
+Create `lib/<theme>.sh` with a `JACK_DESC="..."` line and functions named `<theme>_<action>`. Prefix helpers with `_<theme>_`. Every action needs a `JACK_DOC_<action>="one line"` and a `JACK_USAGE_<action>="args"` assignment. Use an empty usage for actions without arguments. Error messages should call `jack_usage <theme> <action>` instead of repeating the string. Values must not contain double quotes. Tests fail when a doc or usage is missing. Nothing else needs editing.
 
 ## Test
 
