@@ -181,10 +181,13 @@ clean_cargo() {
 clean_list() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage clean list)"
   local act ok
+  echo "READY means the tool is installed and the action applies to this OS."
+  echo
+  printf '%-10s %-6s %s\n' ACTION READY DESCRIPTION
   for act in $(jack_actions clean); do
     case "$act" in list|all) continue ;; esac
     if _clean_available "$act"; then ok=yes; else ok=no; fi
-    printf '%-10s %-4s %s\n' "$act" "$ok" "$(jack_meta clean DOC "$act")"
+    printf '%-10s %-6s %s\n' "$act" "$ok" "$(jack_meta clean DOC "$act")"
   done
 }
 

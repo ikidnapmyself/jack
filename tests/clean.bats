@@ -371,6 +371,14 @@ fi'
   if grep -qE '^(list|all)[[:space:]]' <<< "$output"; then false; fi
 }
 
+@test "list prints a column header and explains READY" {
+  run "$JACK" clean list
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ ACTION[[:space:]]+READY[[:space:]]+DESCRIPTION ]] || false
+  [[ "$output" == *"READY means"* ]] || false
+  [[ "${lines[0]}" == *"READY means"* ]]
+}
+
 @test "list rejects arguments" {
   run "$JACK" clean list extra
   [[ "$output" == *"usage: jack clean list"* ]] || false
