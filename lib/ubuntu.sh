@@ -129,6 +129,11 @@ ubuntu_big_files_delete() {
   done <<< "$matches"
 }
 
+_ubuntu_pick_mount() {
+  command -v lsblk >/dev/null 2>&1 || return 0
+  lsblk -rpno NAME,SIZE,FSTYPE,MOUNTPOINT | awk -F'[ ]' '$3 != "" && $4 == "" {print $1 "  " $2 " " $3}'
+}
+
 ubuntu_mount() {
   [ $# -eq 2 ] || die_usage "usage: $(jack_usage ubuntu mount)"
   case "$1" in

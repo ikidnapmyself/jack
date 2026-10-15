@@ -38,6 +38,121 @@ action_help() {
   echo "usage: $(jack_usage "$1" "$2")"
 }
 
+tty_ui() {
+  [ "$JACK_TUIN_ON" -eq 1 ] && [ -t 0 ] && [ -t 1 ]
+}
+
+choose_lines() {
+  local -a opts=()
+  local line
+  while IFS= read -r line; do
+    opts+=("$line")
+  done <<< "$1"
+  tuin_choose "${opts[@]}"
+}
+
+pick_candidate() {
+  local lines line
+  lines="$("$1" 2>/dev/null)"
+  [ -n "$lines" ] || return 0
+  line="$(choose_lines "$lines")" || return 1
+  printf '%s\n' "${line%% *}"
+}
+
+collect_args() {
+  local theme="$1" action="$2" full="$3" usage picker tok name flag val i=0 have=0 arg
+  shift 3
+  for arg in "$@"; do
+    case "$arg" in -*) ;; *) have=$((have + 1)) ;; esac
+  done
+  usage="$(jack_meta "$theme" USAGE "$(printf %s "$action" | tr - _)")"
+  picker="_${theme}_pick_$(printf %s "$action" | tr - _)"
+  COLLECTED=("$@")
+  set -f
+  for tok in $usage; do
+    case "$tok" in
+      "[-"*)
+        [ "$full" -eq 1 ] || continue
+        flag="${tok#[}"
+        flag="${flag%]}"
+        [ "$flag" = -y ] && continue
+        if tuin_confirm "Use $flag?" n; then COLLECTED+=("$flag"); fi
+        ;;
+      "<"*">")
+        i=$((i + 1))
+        [ "$i" -gt "$have" ] || continue
+        name="${tok#<}"
+        name="${name%>}"
+        val=""
+        if [ "$i" -eq 1 ] && declare -F "$picker" >/dev/null; then
+          val="$(pick_candidate "$picker")" || { set +f; return 1; }
+        fi
+        if [ -z "$val" ]; then
+          val="$(tuin_input "$name" "" '.+')" || { set +f; return 1; }
+        fi
+        COLLECTED+=("$val")
+        ;;
+      "["*"]")
+        i=$((i + 1))
+        { [ "$full" -eq 1 ] && [ "$i" -gt "$have" ]; } || continue
+        name="${tok#[}"
+        name="${name%]}"
+        val="$(tuin_input "$name, optional" "")" || { set +f; return 1; }
+        if [ -n "$val" ]; then COLLECTED+=("$val"); fi
+        ;;
+    esac
+  done
+  set +f
+  return 0
+}
+
+run_action() {
+  local rc=0
+  ( JACK_PICKER=1; main "$1" "$2" ) || rc=$?
+  [ "$rc" -eq 0 ] || echo "exit $rc" >&2
+  return 0
+}
+
+pick_theme() {
+  local act
+  local -a opts=()
+  for act in $(jack_actions "$1"); do
+    opts+=("$(printf '%-18s %s' "$(printf %s "$act" | tr _ -)" "$(jack_meta "$1" DOC "$act")")")
+  done
+  while tuin_menu "jack $1" "${opts[@]}"; do
+    run_action "$1" "${TUIN_REPLY%% *}"
+  done
+  return 0
+}
+
+pick_search() {
+  local theme act line lines
+  lines="$(for theme in $(jack_visible_themes); do
+    for act in $(jack_actions "$theme"); do
+      printf '%-8s %-18s %s\n' "$theme" "$(printf %s "$act" | tr _ -)" "$(jack_meta "$theme" DOC "$act")"
+    done
+  done)"
+  line="$(TUIN_FILTER=1 choose_lines "$lines")" || return 0
+  read -r theme act _ <<< "$line"
+  run_action "$theme" "$act"
+}
+
+picker() {
+  local name
+  local -a opts=("search   Filter every action")
+  for name in $(jack_visible_themes); do
+    opts+=("$(printf '%-8s %s' "$name" "$(jack_desc "$name")")")
+  done
+  tuin_banner "jack"
+  while tuin_menu "themes" "${opts[@]}"; do
+    case "$TUIN_REPLY" in
+      search*) pick_search ;;
+      *) pick_theme "${TUIN_REPLY%% *}" ;;
+    esac
+  done
+  return 0
+}
+
 main() {
   local theme="${1:-}" action="${2:-}" fn
 
@@ -45,6 +160,14 @@ main() {
     shift
     jack_complete "$@"
     return 0
+  fi
+
+  if [ -z "$theme" ]; then
+    jack_tuin_offer
+    if tty_ui; then
+      picker
+      return 0
+    fi
   fi
 
   if [ -z "$theme" ] || [ "$theme" = -h ] || [ "$theme" = --help ] || [ "$theme" = help ]; then
@@ -61,6 +184,10 @@ main() {
   . "$JACK_ROOT/lib/$theme.sh"
 
   if [ -z "$action" ] || [ "$action" = help ]; then
+    if [ -z "$action" ] && tty_ui; then
+      pick_theme "$theme"
+      return 0
+    fi
     list_actions "$theme"
     return 0
   fi
@@ -76,6 +203,10 @@ main() {
   esac
 
   shift 2
+  if tty_ui; then
+    collect_args "$theme" "$action" "${JACK_PICKER:-0}" "$@" || return 1
+    set -- ${COLLECTED[@]+"${COLLECTED[@]}"}
+  fi
   "$fn" "$@"
 }
 

@@ -24,8 +24,74 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
 }
 
+JACK_TUIN_VERSION="0.2.0"
+JACK_TUIN_SHA256="7f69fb0edf827ac0e764cee044c14ed5628add59837a97d3e6daf0fd7b73a0e0"
+JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_ROOT/lib/vendor/tuin.sh}"
+JACK_TUIN_STATE="${JACK_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/jack}/tuin"
+JACK_TUIN_ON=0
+
+jack_tuin_state() {
+  cat "$JACK_TUIN_STATE" 2>/dev/null
+}
+
+jack_tuin_set() {
+  mkdir -p "$(dirname "$JACK_TUIN_STATE")" && printf '%s\n' "$1" > "$JACK_TUIN_STATE"
+}
+
+jack_tuin_load() {
+  [ "$(jack_tuin_state)" = on ] && [ -f "$JACK_TUIN_FILE" ] || return 0
+  . "$JACK_TUIN_FILE" && JACK_TUIN_ON=1
+  return 0
+}
+
+jack_tuin_install() {
+  command -v curl >/dev/null 2>&1 || { echo "error: curl is needed to download tuin" >&2; return 1; }
+  local tmp sum
+  tmp="$(mktemp)" || return 1
+  if ! curl -fsSL "https://raw.githubusercontent.com/ikidnapmyself/tuin/v$JACK_TUIN_VERSION/tuin.sh" -o "$tmp"; then
+    rm -f "$tmp"
+    echo "error: tuin download failed" >&2
+    return 1
+  fi
+  sum="$(shasum -a 256 "$tmp" 2>/dev/null | cut -d' ' -f1)"
+  [ -n "$sum" ] || sum="$(sha256sum "$tmp" | cut -d' ' -f1)"
+  if [ "$sum" != "$JACK_TUIN_SHA256" ]; then
+    rm -f "$tmp"
+    echo "error: tuin checksum mismatch" >&2
+    return 1
+  fi
+  mkdir -p "$(dirname "$JACK_TUIN_FILE")" && mv "$tmp" "$JACK_TUIN_FILE"
+}
+
+jack_tuin_offer() {
+  [ -t 0 ] && [ -t 1 ] || return 0
+  [ -z "$(jack_tuin_state)" ] || return 0
+  if confirm "Enable the tuin UI (menus, spinners, prompts)? Downloads tuin v$JACK_TUIN_VERSION."; then
+    if jack_tuin_install; then
+      jack_tuin_set on
+      jack_tuin_load
+    fi
+  else
+    jack_tuin_set off
+  fi
+}
+
+jack_spin() {
+  local label="$1"
+  shift
+  if [ "$JACK_TUIN_ON" -eq 1 ]; then
+    tuin_spin "$label" -- "$@"
+  else
+    "$@"
+  fi
+}
+
 confirm() {
   local reply
+  if [ "$JACK_TUIN_ON" -eq 1 ]; then
+    tuin_confirm "$1" n
+    return
+  fi
   printf '%s [y/N] ' "$1"
   read -r reply || return 1
   case "$reply" in
@@ -158,3 +224,5 @@ jack_complete() {
   esac
   return 0
 }
+
+jack_tuin_load

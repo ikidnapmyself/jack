@@ -17,6 +17,14 @@ _port_cmdline() {
   ps -o command= -p "$1" 2>/dev/null
 }
 
+_port_pick_kill() {
+  require_cmd lsof
+  local port pid user
+  _port_rows | awk '!seen[$1]++' | while read -r port pid user; do
+    printf '%s  %s (pid %s, %s)\n' "$port" "$(ps -o comm= -p "$pid" | sed 's|.*/||')" "$pid" "$user"
+  done
+}
+
 port_list() {
   require_cmd lsof
   if [ $# -gt 0 ]; then

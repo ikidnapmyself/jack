@@ -23,7 +23,7 @@ jack help               # same as jack
 jack port kill -h       # doc and usage for one action
 ```
 
-Themes: `port`, `docker`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`.
+Themes: `port`, `docker`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`, `tuin`.
 
 Action names use hyphens on the command line and underscores in code, so `jack mac flush-dns` runs `mac_flush_dns`. Destructive actions prompt and accept `-y`. Actions that need root exit with the `sudo jack ...` line to run, jack never calls sudo itself.
 
@@ -34,6 +34,10 @@ command -v jack >/dev/null && eval "$(jack completion zsh)"
 ```
 
 Use `bash` instead of `zsh` in `.bashrc`. In `.zshrc`, put the line after `compinit`, otherwise nothing registers.
+
+### tuin (optional)
+
+Run bare `jack` in a terminal and it offers once to enable [tuin](https://github.com/ikidnapmyself/tuin). Saying yes downloads a pinned, checksum-verified `tuin.sh` into `lib/vendor/` and turns on arrow-key confirm prompts, spinners for cleanups and an interactive theme and action picker on bare `jack`. Saying no never asks again. Change your mind any time with `jack tuin enable`, `jack tuin disable` or `jack tuin status`. The choice lives in `~/.config/jack/tuin` as `on` or `off`. Without it jack behaves as before.
 
 ### Clean
 

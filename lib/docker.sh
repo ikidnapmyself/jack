@@ -49,13 +49,18 @@ docker_prune() {
   done
   require_cmd docker
   confirm_unless_yes "Prune unused Docker objects${volumes:+ including volumes}?" "$assume_yes" || return 1
-  docker system prune -f $volumes
+  jack_spin "Pruning Docker" docker system prune -f $volumes
 }
 
 docker_ps() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage docker ps)"
   require_cmd docker-compose
   docker-compose ps
+}
+
+_docker_pick_restart() {
+  command -v docker-compose >/dev/null 2>&1 || return 0
+  docker-compose config --services 2>/dev/null
 }
 
 docker_restart() {

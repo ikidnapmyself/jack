@@ -41,7 +41,7 @@ _clean_simple() {
   shift 2
   [ "$extra" -eq 0 ] || die_usage "usage: $(jack_usage clean "$action")"
   require_cmd "$1"
-  "$@"
+  jack_spin "Cleaning $action" "$@"
 }
 
 _clean_require_os() {
