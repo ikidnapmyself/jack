@@ -1,4 +1,5 @@
 JACK_DESC="macOS chores"
+JACK_OS="Darwin"
 JACK_DOC_flush_dns="Flush the DNS cache, needs root"
 JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email"
 JACK_USAGE_flush_dns=""

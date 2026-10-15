@@ -19,7 +19,7 @@ list_themes() {
   echo "usage: jack <theme> <action> [args]"
   echo
   echo "themes:"
-  for name in $(jack_themes); do
+  for name in $(jack_visible_themes); do
     desc="$(jack_desc "$name")"
     printf '  %-10s %s\n' "$name" "$desc"
   done

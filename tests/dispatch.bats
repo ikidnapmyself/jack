@@ -107,3 +107,9 @@ setup() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"unknown action"* ]]
 }
+
+@test "theme list hides themes for another OS" {
+  JACK_UNAME=Linux run "$JACK"
+  [[ "$output" == *ubuntu* ]]
+  [[ "$output" != *"macOS chores"* ]]
+}

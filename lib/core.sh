@@ -85,6 +85,19 @@ jack_themes() {
   done
 }
 
+jack_theme_visible() {
+  local os
+  os="$(sed -n 's/^JACK_OS="\(.*\)"$/\1/p' "$JACK_ROOT/lib/$1.sh" | head -n 1)"
+  [ -z "$os" ] || [ "$os" = "${JACK_UNAME:-$(uname -s)}" ]
+}
+
+jack_visible_themes() {
+  local name
+  for name in $(jack_themes); do
+    ! jack_theme_visible "$name" || echo "$name"
+  done
+}
+
 jack_actions() {
   sed -n "s/^$1_\([a-z_]*\)()[[:space:]]*{.*/\1/p" "$JACK_ROOT/lib/$1.sh"
 }
@@ -127,7 +140,7 @@ jack_complete() {
   local name act
   case $# in
     0|1)
-      for name in $(jack_themes); do
+      for name in $(jack_visible_themes); do
         _jack_candidate "$name" "$(jack_desc "$name")"
       done
       _jack_candidate help "Show help"

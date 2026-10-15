@@ -1,4 +1,5 @@
 JACK_DESC="Ubuntu chores"
+JACK_OS="Linux"
 JACK_DOC_flush_dns="Restart named and nscd to flush DNS caches, needs root"
 JACK_DOC_ports="List listening TCP ports with owning processes"
 JACK_DOC_port_test="Check whether a host accepts TCP connections on a port"

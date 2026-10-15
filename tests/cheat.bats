@@ -26,3 +26,9 @@ load test_helper
   [ "$status" -eq 2 ]
   [[ "$output" == *"unknown theme"* ]]
 }
+
+@test "list marks themes for another OS as Disabled" {
+  JACK_UNAME=Linux run "$JACK" cheat list
+  [[ "$output" == *"mac (Disabled)"* ]]
+  [[ "$output" != *"ubuntu (Disabled)"* ]]
+}

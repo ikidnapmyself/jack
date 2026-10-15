@@ -55,3 +55,12 @@ has_line() {
   run "$JACK" __complete --desc ""
   has_line "port:List and kill processes on TCP ports"
 }
+
+@test "themes for another OS are hidden from completion" {
+  JACK_UNAME=Linux run "$JACK" __complete ""
+  has_line ubuntu
+  ! has_line mac
+  JACK_UNAME=Darwin run "$JACK" __complete ""
+  has_line mac
+  ! has_line ubuntu
+}

@@ -12,7 +12,7 @@ cheat_list() {
   fi
   for theme in $(jack_themes); do
     [ -z "$only" ] || [ "$only" = "$theme" ] || continue
-    echo "$theme"
+    if jack_theme_visible "$theme"; then echo "$theme"; else echo "$theme (Disabled)"; fi
     jack_print_actions "$theme"
   done
 }
