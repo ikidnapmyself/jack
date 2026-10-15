@@ -23,22 +23,6 @@ setup() {
   logged "killall -HUP mDNSResponder"
 }
 
-@test "nginx-reload needs root" {
-  stub_cmd id 'echo 501'
-  stub_cmd nginx ''
-  run "$JACK" mac nginx-reload
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"sudo jack mac nginx-reload"* ]]
-}
-
-@test "nginx-reload reloads as root" {
-  stub_cmd id 'echo 0'
-  stub_cmd nginx ''
-  run "$JACK" mac nginx-reload
-  [ "$status" -eq 0 ]
-  logged "nginx -s reload"
-}
-
 @test "ssh-key uses the shared helper" {
   export HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$HOME"

@@ -23,7 +23,7 @@ jack help               # same as jack
 jack port kill -h       # doc and usage for one action
 ```
 
-Themes: `port`, `docker`, `npm`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`.
+Themes: `port`, `docker`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`.
 
 Action names use hyphens on the command line and underscores in code, so `jack mac flush-dns` runs `mac_flush_dns`. Destructive actions prompt and accept `-y`. Actions that need root exit with the `sudo jack ...` line to run, jack never calls sudo itself.
 

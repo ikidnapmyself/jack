@@ -27,7 +27,7 @@ has_line() {
   run "$JACK" __complete mac ""
   [ "$status" -eq 0 ]
   has_line flush-dns
-  has_line nginx-reload
+  has_line ssh-key
   has_line help
 }
 

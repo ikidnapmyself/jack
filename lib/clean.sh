@@ -34,7 +34,6 @@ JACK_USAGE_list=""
 JACK_DOC_all="Run every available clean action except gradle, maven and cargo"
 JACK_USAGE_all="[-y]"
 
-. "$JACK_ROOT/lib/npm.sh"
 . "$JACK_ROOT/lib/docker.sh"
 
 _clean_simple() {
@@ -76,7 +75,8 @@ clean_go() { _clean_simple go $# go clean -modcache; }
 
 clean_npm() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage clean npm)"
-  npm_cache_clear
+  require_cmd npm
+  npm cache clear --force
 }
 
 clean_docker() {

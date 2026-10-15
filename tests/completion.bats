@@ -48,7 +48,7 @@ bash_complete() {
 @test "bash completion offers every action on an empty word" {
   run bash_complete jack mac ""
   [[ "$output" == *"flush-dns"* ]]
-  [[ "$output" == *"nginx-reload"* ]]
+  [[ "$output" == *"ssh-key"* ]]
 }
 
 @test "zsh completion registers _jack for jack" {
