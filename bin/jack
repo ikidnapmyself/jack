@@ -162,6 +162,11 @@ main() {
     return 0
   fi
 
+  if [ "$theme" = --version ]; then
+    echo "jack $JACK_VERSION"
+    return 0
+  fi
+
   if [ -z "$theme" ]; then
     jack_tuin_offer
     if tty_ui; then

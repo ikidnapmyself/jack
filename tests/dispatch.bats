@@ -113,3 +113,14 @@ setup() {
   [[ "$output" == *ubuntu* ]]
   [[ "$output" != *"macOS chores"* ]]
 }
+
+@test "--version prints the jack version" {
+  run "$JACK" --version
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ ^jack\ [0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
+@test "--version is not treated as a theme" {
+  run "$JACK" --version
+  [[ "$output" != *"unknown theme"* ]]
+}

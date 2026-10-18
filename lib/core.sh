@@ -24,6 +24,7 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
 }
 
+JACK_VERSION="0.1.0"
 JACK_TUIN_VERSION="0.2.0"
 JACK_TUIN_SHA256="7f69fb0edf827ac0e764cee044c14ed5628add59837a97d3e6daf0fd7b73a0e0"
 JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_ROOT/lib/vendor/tuin.sh}"

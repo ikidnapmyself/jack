@@ -20,6 +20,7 @@ jack clean pip          # purge one cache
 jack clean all [-y]     # run every available cleanup
 jack cheat list [theme] # every action with its description
 jack help               # same as jack
+jack --version          # print the version
 jack port kill -h       # doc and usage for one action
 ```
 
