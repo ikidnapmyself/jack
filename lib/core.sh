@@ -27,7 +27,8 @@ require_cmd() {
 JACK_VERSION="0.1.0"
 JACK_TUIN_VERSION="0.2.0"
 JACK_TUIN_SHA256="7f69fb0edf827ac0e764cee044c14ed5628add59837a97d3e6daf0fd7b73a0e0"
-JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_ROOT/lib/vendor/tuin.sh}"
+JACK_TUIN_DEFAULT_FILE="$JACK_ROOT/lib/vendor/tuin.sh"
+JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_TUIN_DEFAULT_FILE}"
 JACK_TUIN_STATE="${JACK_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/jack}/tuin"
 JACK_TUIN_ON=0
 
@@ -39,8 +40,21 @@ jack_tuin_set() {
   mkdir -p "$(dirname "$JACK_TUIN_STATE")" && printf '%s\n' "$1" > "$JACK_TUIN_STATE"
 }
 
+jack_sha256() {
+  shasum -a 256 "$1" 2>/dev/null | cut -d' ' -f1 | grep . || sha256sum "$1" 2>/dev/null | cut -d' ' -f1
+}
+
 jack_tuin_load() {
   [ "$(jack_tuin_state)" = on ] && [ -f "$JACK_TUIN_FILE" ] || return 0
+  if [ "$JACK_TUIN_FILE" != "$JACK_TUIN_DEFAULT_FILE" ]; then
+    if [ "$(id -u)" = 0 ]; then
+      echo "warning: ignoring JACK_TUIN_FILE override while running as root" >&2
+      return 0
+    fi
+  elif [ "$(jack_sha256 "$JACK_TUIN_FILE")" != "$JACK_TUIN_SHA256" ]; then
+    echo "warning: tuin checksum mismatch, not loading $JACK_TUIN_FILE" >&2
+    return 0
+  fi
   . "$JACK_TUIN_FILE" && JACK_TUIN_ON=1
   return 0
 }
@@ -54,8 +68,7 @@ jack_tuin_install() {
     echo "error: tuin download failed" >&2
     return 1
   fi
-  sum="$(shasum -a 256 "$tmp" 2>/dev/null | cut -d' ' -f1)"
-  [ -n "$sum" ] || sum="$(sha256sum "$tmp" | cut -d' ' -f1)"
+  sum="$(jack_sha256 "$tmp")"
   if [ "$sum" != "$JACK_TUIN_SHA256" ]; then
     rm -f "$tmp"
     echo "error: tuin checksum mismatch" >&2

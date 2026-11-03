@@ -129,3 +129,23 @@ STUB
   [[ "$output" == *"download failed"* ]]
   [ ! -e "$JACK_CONFIG_DIR/tuin" ]
 }
+
+@test "default tuin file is not loaded when its checksum mismatches" {
+  echo on > "$JACK_CONFIG_DIR/tuin"
+  unset JACK_TUIN_FILE
+  JACK_ROOT="$BATS_TEST_TMPDIR/root"
+  mkdir -p "$JACK_ROOT/lib/vendor"
+  cp "$BATS_TEST_DIRNAME/../lib/core.sh" "$JACK_ROOT/lib/core.sh"
+  echo 'tuin_confirm() { :; }' > "$JACK_ROOT/lib/vendor/tuin.sh"
+  run bash -c ". '$JACK_ROOT/lib/core.sh'; echo on=\$JACK_TUIN_ON"
+  [[ "$output" == *"checksum mismatch"* ]]
+  [[ "$output" == *"on=0"* ]]
+}
+
+@test "JACK_TUIN_FILE override is ignored as root" {
+  setup_stubs
+  echo on > "$JACK_CONFIG_DIR/tuin"
+  stub_cmd id 'echo 0'
+  . "$JACK_ROOT/lib/core.sh"
+  [ "$JACK_TUIN_ON" -eq 0 ]
+}
