@@ -199,7 +199,30 @@ make_sized_files() {
   stub_cmd mount ''
   run "$JACK" ubuntu mount /dev/sdb1 "$BATS_TEST_TMPDIR/mnt"
   [ "$status" -eq 0 ]
-  logged "mount /dev/sdb1 $BATS_TEST_TMPDIR/mnt"
+  logged "mount -o nosuid,nodev,noexec /dev/sdb1 $BATS_TEST_TMPDIR/mnt"
+}
+
+@test "mount rejects a device path with traversal" {
+  mkdir -p "$BATS_TEST_TMPDIR/mnt"
+  stub_cmd id 'echo 0'
+  stub_cmd mount ''
+  run "$JACK" ubuntu mount /dev/../tmp/x.img "$BATS_TEST_TMPDIR/mnt"
+  [ "$status" -eq 2 ]
+  not_logged_like "^mount"
+}
+
+@test "big-files-delete handles newlines in names and refuses /" {
+  BIG_DIR="$BATS_TEST_TMPDIR/big"
+  mkdir -p "$BIG_DIR"
+  cd "$BATS_TEST_TMPDIR"
+  : > keep.db
+  head -c 3000 /dev/zero > "$BIG_DIR/junk
+keep.db"
+  run "$JACK" ubuntu big-files-delete 1k "$BIG_DIR" -y
+  [ "$status" -eq 0 ]
+  [ -f keep.db ]
+  run "$JACK" ubuntu big-files-delete 1k / -y
+  [ "$status" -eq 2 ]
 }
 
 @test "mount validates device and target before the root check" {

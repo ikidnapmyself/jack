@@ -85,20 +85,24 @@ _ubuntu_validate_size() {
 }
 
 _ubuntu_big_matches() {
-  find "$2" -type f -size +"$1"
+  BIG_MATCHES=()
+  local f
+  while IFS= read -r -d '' f; do
+    BIG_MATCHES+=("$f")
+  done < <(find "$2" -xdev -type f -size +"$1" -print0)
 }
 
 ubuntu_big_files() {
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "usage: $(jack_usage ubuntu big-files)"
   _ubuntu_validate_size "$1"
-  local dir="${2:-.}" matches
+  local dir="${2:-.}"
   _ubuntu_validate_dir "$dir"
-  matches="$(_ubuntu_big_matches "$1" "$dir")"
-  if [ -z "$matches" ]; then
+  _ubuntu_big_matches "$1" "$dir"
+  if [ ${#BIG_MATCHES[@]} -eq 0 ]; then
     echo "no files over $1 in $dir" >&2
     return 1
   fi
-  printf '%s\n' "$matches"
+  printf '%s\n' "${BIG_MATCHES[@]}"
 }
 
 ubuntu_big_files_delete() {
@@ -114,19 +118,19 @@ ubuntu_big_files_delete() {
   done
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "$usage"
   _ubuntu_validate_size "$1"
-  local dir="${2:-.}" matches count f
+  local dir="${2:-.}" f
   _ubuntu_validate_dir "$dir"
-  matches="$(_ubuntu_big_matches "$1" "$dir")"
-  if [ -z "$matches" ]; then
+  [ "$(cd "$dir" && pwd -P)" != / ] || die_usage "refusing to delete from /"
+  _ubuntu_big_matches "$1" "$dir"
+  if [ ${#BIG_MATCHES[@]} -eq 0 ]; then
     echo "no files over $1 in $dir" >&2
     return 1
   fi
-  printf '%s\n' "$matches"
-  count="$(printf '%s\n' "$matches" | wc -l | tr -d ' ')"
-  confirm_unless_yes "Delete $count file(s) over $1 in $dir?" "$assume_yes" || return 1
-  while IFS= read -r f; do
+  printf '%s\n' "${BIG_MATCHES[@]}"
+  confirm_unless_yes "Delete ${#BIG_MATCHES[@]} file(s) over $1 in $dir?" "$assume_yes" || return 1
+  for f in "${BIG_MATCHES[@]}"; do
     rm -- "$f"
-  done <<< "$matches"
+  done
 }
 
 _ubuntu_pick_mount() {
@@ -137,11 +141,12 @@ _ubuntu_pick_mount() {
 ubuntu_mount() {
   [ $# -eq 2 ] || die_usage "usage: $(jack_usage ubuntu mount)"
   case "$1" in
+    */../*|*/..) die_usage "invalid device: $1" ;;
     /dev/?*) ;;
     *) die_usage "invalid device: $1" ;;
   esac
   [ -d "$2" ] || die_usage "not a directory: $2"
   require_root ubuntu mount "$@"
   require_cmd mount
-  mount "$1" "$2"
+  mount -o nosuid,nodev,noexec "$1" "$2"
 }
