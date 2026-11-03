@@ -10,9 +10,22 @@ JACK_USAGE_prune="[--volumes] [-y]"
 JACK_USAGE_ps=""
 JACK_USAGE_restart="<service>"
 
+_docker_up() {
+  local out
+  out="$(docker info 2>&1)" && return 0
+  case "$out" in
+    *"Cannot connect to the Docker daemon"*|*"daemon running"*)
+      echo "docker isn't running, skipping" >&2
+      return 1
+      ;;
+  esac
+  die "docker info failed: ${out##*$'\n'}"
+}
+
 docker_stop() {
   parse_yes_only "$(jack_usage docker stop)" "$@"
   require_cmd docker
+  _docker_up || return 0
   local ids count
   ids="$(docker ps -q)" || die "docker ps failed"
   if [ -z "$ids" ]; then
@@ -27,6 +40,7 @@ docker_stop() {
 docker_rm() {
   parse_yes_only "$(jack_usage docker rm)" "$@"
   require_cmd docker
+  _docker_up || return 0
   local ids count
   ids="$(docker ps -aq -f status=exited)" || die "docker ps failed"
   if [ -z "$ids" ]; then
@@ -48,8 +62,9 @@ docker_prune() {
     esac
   done
   require_cmd docker
+  _docker_up || return 0
   confirm_unless_yes "Prune unused Docker objects${volumes:+ including volumes}?" "$assume_yes" || return 1
-  jack_spin "Pruning Docker" docker system prune -f $volumes
+  jack_spin "Pruning Docker" docker system prune -f ${volumes:+--volumes}
 }
 
 docker_ps() {

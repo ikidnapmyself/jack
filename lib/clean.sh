@@ -55,6 +55,7 @@ _clean_available() {
     maven) [ -d "${HOME:?}/.m2/repository" ] ;;
     brew) [ "$os" = Darwin ] && command -v brew >/dev/null 2>&1 ;;
     apt|snap) [ "$os" = Linux ] && command -v "$1" >/dev/null 2>&1 ;;
+    docker) command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 ;;
     journal) [ "$os" = Linux ] && command -v journalctl >/dev/null 2>&1 ;;
     *) command -v "$1" >/dev/null 2>&1 ;;
   esac

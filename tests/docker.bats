@@ -128,3 +128,25 @@ setup() {
   [[ "$output" == *"docker ps failed"* ]]
   not_logged_like "^docker rm"
 }
+
+@test "stop, rm and prune skip with a notice when the daemon is off" {
+  local act
+  stub_cmd docker 'case "$1" in info) echo "Cannot connect to the Docker daemon at unix:///x. Is the docker daemon running?" >&2; exit 1 ;; esac'
+  for act in stop rm prune; do
+    run "$JACK" docker "$act" -y
+    [ "$status" -eq 0 ] || { echo "$act status $status"; return 1; }
+    [[ "$output" == *"docker isn't running, skipping"* ]] || { echo "$act: $output"; return 1; }
+  done
+  not_logged_like "^docker \(ps\|stop\|rm\|system\)"
+}
+
+@test "stop, rm and prune fail loudly on a non-daemon docker info error" {
+  local act
+  stub_cmd docker 'case "$1" in info) echo "permission denied while trying to connect" >&2; exit 1 ;; esac'
+  for act in stop rm prune; do
+    run "$JACK" docker "$act" -y
+    [ "$status" -eq 1 ] || { echo "$act status $status"; return 1; }
+    [[ "$output" == *"permission denied"* ]] || { echo "$act: $output"; return 1; }
+  done
+  not_logged_like "^docker \(ps\|stop\|rm\|system\)"
+}

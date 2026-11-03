@@ -76,7 +76,7 @@ isolate_path() {
   stub_cmd docker ''
   run "$JACK" clean docker <<< "n"
   [ "$status" -eq 1 ]
-  not_logged_like "^docker"
+  not_logged_like "^docker system"
 }
 
 @test "docker rejects unknown flags" {
@@ -485,4 +485,14 @@ fi'
       false
     fi
   done
+}
+
+@test "all skips docker when the daemon is down" {
+  export JACK_UNAME=Darwin
+  isolate_path
+  stub_cmd docker 'case "$1" in info) exit 1 ;; esac'
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skip docker, not available"* ]]
+  not_logged_like "^docker system"
 }
