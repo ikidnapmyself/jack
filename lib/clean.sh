@@ -174,7 +174,7 @@ clean_cargo() {
   parse_yes_only "$(jack_usage clean cargo)" "$@"
   require_cmd cargo
   confirm_unless_yes "Autoclean the cargo cache, installing cargo-cache if missing?" "$ASSUME_YES" || return 1
-  cargo cache --version >/dev/null 2>&1 || cargo install cargo-cache || die "cargo install failed"
+  cargo cache --version >/dev/null 2>&1 || cargo install --locked --version 0.8.3 cargo-cache || die "cargo install failed"
   cargo cache --autoclean
 }
 

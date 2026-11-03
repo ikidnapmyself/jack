@@ -337,7 +337,7 @@ fi'
   stub_cmd cargo '[ "$1 $2" = "cache --version" ] && exit 1; exit 0'
   run "$JACK" clean cargo -y
   [ "$status" -eq 0 ]
-  logged "cargo install cargo-cache"
+  logged "cargo install --locked --version 0.8.3 cargo-cache"
   logged "cargo cache --autoclean"
 }
 
