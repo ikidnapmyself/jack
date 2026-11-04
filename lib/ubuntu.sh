@@ -1,30 +1,38 @@
 JACK_DESC="Ubuntu chores"
 JACK_OS="Linux"
-JACK_DOC_flush_dns="Restart named and nscd to flush DNS caches, needs root"
+JACK_DOC_flush_dns="Flush the DNS cache with resolvectl, or restart named and nscd, needs root"
 JACK_DOC_ports="List listening TCP ports with owning processes"
 JACK_DOC_port_test="Check whether a host accepts TCP connections on a port"
 JACK_DOC_count="Count files under a directory"
 JACK_DOC_mysql_config="Show where MySQL looks for option files"
-JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email"
+JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email, default path ~/.ssh/id_ed25519"
 JACK_DOC_big_files="List files over a size such as 500k, 10M or 1G, a unit k, M or G is required"
 JACK_DOC_big_files_delete="Delete files over a size after showing how many match"
 JACK_DOC_mount="Mount a device at a target directory, needs root"
-JACK_USAGE_flush_dns=""
+JACK_USAGE_flush_dns="[-y]"
 JACK_USAGE_ports=""
 JACK_USAGE_port_test="<host> <port>"
 JACK_USAGE_count="[dir]"
 JACK_USAGE_mysql_config=""
-JACK_USAGE_ssh_key="<email>"
+JACK_USAGE_ssh_key="<email> [path]"
 JACK_USAGE_big_files="<size> [dir]"
 JACK_USAGE_big_files_delete="<size> [dir] [-y]"
 JACK_USAGE_mount="<device> <target>"
 
 ubuntu_flush_dns() {
-  [ $# -eq 0 ] || die_usage "usage: $(jack_usage ubuntu flush-dns)"
+  parse_yes_only "$(jack_usage ubuntu flush-dns)" "$@"
   require_root ubuntu flush-dns
+  if command -v resolvectl >/dev/null 2>&1; then
+    resolvectl flush-caches
+    return
+  fi
   require_cmd service
-  service named restart
-  service nscd restart
+  confirm_unless_yes "Restart named and nscd?" "$ASSUME_YES" || return 1
+  local restarted=0 svc
+  for svc in named nscd; do
+    service "$svc" restart && restarted=1
+  done
+  [ "$restarted" -eq 1 ] || die "neither named nor nscd could be restarted"
 }
 
 ubuntu_ports() {

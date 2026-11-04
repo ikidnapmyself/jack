@@ -62,6 +62,18 @@ stub_cmd() {
   chmod +x "$STUB_DIR/$name"
 }
 
+isolate_path() {
+  local bin="$BATS_TEST_TMPDIR/bin" tool src
+  mkdir -p "$bin"
+  for tool in bash env sed tr head wc awk id find rm mkdir chmod touch basename dirname cat uname readlink grep sort; do
+    src="$(command -v "$tool")"
+    case "$src" in
+      /*) ln -sf "$src" "$bin/$tool" ;;
+    esac
+  done
+  PATH="$STUB_DIR:$bin"
+}
+
 logged() {
   grep -qxF -- "$1" "$STUB_LOG"
 }

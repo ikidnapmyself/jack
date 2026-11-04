@@ -23,7 +23,7 @@ JACK_USAGE_xcode="[-y]"
 JACK_USAGE_apt=""
 JACK_USAGE_journal=""
 JACK_USAGE_snap="[-y]"
-JACK_DOC_gradle="Stop the Gradle daemon and delete ~/.gradle/caches"
+JACK_DOC_gradle="Stop the Gradle daemon and delete the Gradle caches, honors GRADLE_USER_HOME"
 JACK_DOC_maven="Delete Maven SNAPSHOT artifacts older than 90 days"
 JACK_DOC_cargo="Autoclean the cargo cache, installs cargo-cache if missing"
 JACK_USAGE_gradle="[-y]"
@@ -143,7 +143,7 @@ clean_snap() {
 clean_gradle() {
   parse_yes_only "$(jack_usage clean gradle)" "$@"
   require_cmd gradle
-  local dir="${HOME:?}/.gradle/caches"
+  local dir="${GRADLE_USER_HOME:-${HOME:?}/.gradle}/caches"
   confirm_unless_yes "Stop the Gradle daemon and delete $dir?" "$ASSUME_YES" || return 1
   gradle --stop
   rm -rf -- "$dir"

@@ -147,12 +147,15 @@ validate_port() {
 ssh_keygen_for() {
   local theme="$1"
   shift
-  { [ $# -eq 1 ] && [ -n "$1" ]; } || die_usage "usage: $(jack_usage "$theme" ssh-key)"
+  { [ $# -ge 1 ] && [ $# -le 2 ] && [ -n "$1" ]; } || die_usage "usage: $(jack_usage "$theme" ssh-key)"
   require_cmd ssh-keygen
-  local path="$HOME/.ssh/id_ed25519"
+  local path="${2:-$HOME/.ssh/id_ed25519}"
+  case "$path" in
+    -*) die_usage "invalid path: $path" ;;
+  esac
   [ ! -e "$path" ] || die "$path already exists"
-  mkdir -p "$HOME/.ssh"
-  chmod 700 "$HOME/.ssh"
+  mkdir -p "$(dirname "$path")"
+  [ -n "${2:-}" ] || chmod 700 "$HOME/.ssh"
   ssh-keygen -t ed25519 -C "$1" -f "$path"
   echo "public key: $path.pub"
 }

@@ -15,13 +15,44 @@ setup() {
   not_logged_like "^service"
 }
 
-@test "flush-dns restarts named and nscd as root" {
+@test "flush-dns uses resolvectl when present" {
   stub_cmd id 'echo 0'
+  stub_cmd resolvectl ''
   stub_cmd service ''
   run "$JACK" ubuntu flush-dns
   [ "$status" -eq 0 ]
+  logged "resolvectl flush-caches"
+  not_logged_like "^service"
+}
+
+@test "flush-dns restarts named and nscd with -y when resolvectl is absent" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service ''
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 0 ]
   logged "service named restart"
   logged "service nscd restart"
+}
+
+@test "flush-dns asks before restarting services" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service ''
+  run "$JACK" ubuntu flush-dns <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^service"
+}
+
+@test "flush-dns tolerates a missing named but fails when nothing restarts" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service '[ "$1" = named ] && exit 1; exit 0'
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 0 ]
+  stub_cmd service 'exit 1'
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 1 ]
 }
 
 @test "ports lists listening tcp sockets" {
