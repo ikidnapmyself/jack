@@ -80,6 +80,7 @@ STUB
 @test "docker restart picker prints compose services" {
   . "$JACK_ROOT/lib/docker.sh"
   setup_stubs
+  stub_cmd docker 'case "$1" in compose) exit 1 ;; esac'
   stub_cmd docker-compose 'printf "web\ndb\n"'
   run _docker_pick_restart
   [ "$output" = "$(printf 'web\ndb')" ]

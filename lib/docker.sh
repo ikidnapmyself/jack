@@ -67,15 +67,28 @@ docker_prune() {
   jack_spin "Pruning Docker" docker system prune -f ${volumes:+--volumes}
 }
 
+_docker_compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose "$@"
+  else
+    die "missing command: docker compose"
+  fi
+}
+
 docker_ps() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage docker ps)"
-  require_cmd docker-compose
-  docker-compose ps
+  _docker_compose ps
 }
 
 _docker_pick_restart() {
-  command -v docker-compose >/dev/null 2>&1 || return 0
-  docker-compose config --services 2>/dev/null
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose config --services 2>/dev/null
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose config --services 2>/dev/null
+  fi
+  return 0
 }
 
 docker_restart() {
@@ -83,6 +96,5 @@ docker_restart() {
   case "$1" in
     ''|-*|*[!A-Za-z0-9_.-]*) die_usage "invalid service: $1" ;;
   esac
-  require_cmd docker-compose
-  docker-compose restart "$1"
+  _docker_compose restart "$1"
 }
