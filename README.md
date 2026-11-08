@@ -12,9 +12,17 @@ Local dev toolkit. `jack <theme> <action> [args]`.
 
 ## Install
 
+Needs bash 3.2 or newer and git. Clone it anywhere and link `bin/jack` onto your `PATH`.
+
 ```bash
-ln -s "$PWD/bin/jack" /usr/local/bin/jack
+git clone https://github.com/ikidnapmyself/jack.git ~/.local/share/jack
+mkdir -p ~/.local/bin
+ln -s ~/.local/share/jack/bin/jack ~/.local/bin/jack
 ```
+
+Make sure `~/.local/bin` is on your `PATH`. For a system-wide install, clone to `/opt/jack` and link into `/usr/local/bin` with `sudo ln -s /opt/jack/bin/jack /usr/local/bin/jack`.
+
+Update with `git -C ~/.local/share/jack pull`. Remove with `rm ~/.local/bin/jack` and `rm -rf ~/.local/share/jack`. Check it worked with `jack --version`.
 
 ## Use
 
