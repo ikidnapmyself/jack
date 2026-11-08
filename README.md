@@ -1,5 +1,13 @@
 # jack
 
+```
+     _            _
+    | | __ _  ___| | __
+ _  | |/ _` |/ __| |/ /
+| |_| | (_| | (__|   <
+ \___/ \__,_|\___|_|\_\
+```
+
 Local dev toolkit. `jack <theme> <action> [args]`.
 
 ## Install
