@@ -1,4 +1,5 @@
 JACK_DESC="Docker and docker-compose chores"
+JACK_ABOUT="Shortcuts for Docker containers and Compose services. Stopping or removing containers takes down whatever they serve, and a removed container loses any data not stored in a volume. Destructive actions ask first."
 JACK_DOC_stop="Stop all running containers"
 JACK_DOC_rm="Remove all exited containers"
 JACK_DOC_prune="Remove unused containers, networks, images and cache, --volumes adds volumes"
@@ -9,6 +10,11 @@ JACK_USAGE_rm="[-y]"
 JACK_USAGE_prune="[--volumes] [-y]"
 JACK_USAGE_ps=""
 JACK_USAGE_restart="<service>"
+JACK_INFO_stop="Stops every running container after asking. The services they provide go offline. Container data is kept unless the container is removed later."
+JACK_INFO_rm="Deletes all stopped containers after asking. Data inside them that is not in a volume is lost. Running containers are not touched."
+JACK_INFO_prune="Removes unused containers, networks, images and build cache after asking. With --volumes it also removes unused volumes, which can delete database data."
+JACK_INFO_ps="Lists the Compose services of the project in the current directory and their state. Read-only."
+JACK_INFO_restart="Restarts one Compose service by name, for example after a config change. Only that service has brief downtime."
 
 _docker_up() {
   local out

@@ -1,10 +1,14 @@
 JACK_DESC="Turn the tuin UI on or off"
+JACK_ABOUT="Switches the optional interactive interface on or off. That means arrow-key menus, spinners and confirm prompts. It only changes how jack looks and asks, never what an action does. The download is checksum-verified."
 JACK_DOC_enable="Download tuin if needed and turn on menus, spinners and prompts"
 JACK_DOC_disable="Turn the tuin UI off, keeps the downloaded file"
 JACK_DOC_status="Show whether tuin is on, its version and where the file lives"
 JACK_USAGE_enable=""
 JACK_USAGE_disable=""
 JACK_USAGE_status=""
+JACK_INFO_enable="Downloads tuin if it is missing, checks its checksum, and turns on menus, spinners and arrow-key prompts. Needs curl and network the first time."
+JACK_INFO_disable="Turns the interactive interface off. The downloaded file is kept so enable is instant later."
+JACK_INFO_status="Shows whether tuin is on, its version and where the file lives. Read-only."
 
 tuin_enable() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage tuin enable)"

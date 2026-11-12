@@ -243,3 +243,7 @@ jack_complete() {
 }
 
 jack_tuin_load
+
+jack_about() {
+  sed -n 's/^JACK_ABOUT="\(.*\)"$/\1/p' "$JACK_ROOT/lib/$1.sh" | head -n 1
+}

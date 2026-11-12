@@ -32,3 +32,41 @@ load test_helper
   [[ "$output" == *"mac (Disabled)"* ]]
   [[ "$output" != *"ubuntu (Disabled)"* ]]
 }
+
+@test "explain with no arguments describes every theme and its safety" {
+  run "$JACK" cheat explain
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"clean: Cache and disk cleanup"* ]]
+  [[ "$output" == *"Nothing you wrote is touched"* ]]
+}
+
+@test "explain with a theme covers every action in it" {
+  run "$JACK" cheat explain port
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"jack port list [port]"* ]]
+  [[ "$output" == *"jack port kill <port> [-y]"* ]]
+  [[ "$output" == *"Unsaved work"* ]]
+}
+
+@test "explain with a theme and action shows usage, doc and details" {
+  run "$JACK" cheat explain clean pip
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"jack clean pip"* ]]
+  [[ "$output" == *"Purge the pip cache"* ]]
+  [[ "$output" == *"downloads them again"* ]]
+}
+
+@test "explain accepts hyphenated action names" {
+  run "$JACK" cheat explain ubuntu big-files-delete
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no trash"* ]]
+}
+
+@test "explain rejects unknown themes and actions" {
+  run "$JACK" cheat explain nope
+  [ "$status" -eq 2 ]
+  run "$JACK" cheat explain port nope
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown action"* ]]
+}
+
