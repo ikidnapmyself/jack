@@ -10,7 +10,7 @@ setup() {
 
 @test "simple actions run their command" {
   local row act cmd
-  for row in "pip|pip cache purge" "yarn|yarn cache clean" "pnpm|pnpm store prune" "composer|composer clear-cache" "go|go clean -modcache"; do
+  for row in "pip|pip cache purge" "yarn|yarn cache clean" "pnpm|pnpm store prune" "uv|uv cache clean" "composer|composer clear-cache" "go|go clean -modcache"; do
     act="${row%%|*}"
     cmd="${row#*|}"
     stub_cmd "${cmd%% *}" ''
@@ -23,7 +23,7 @@ setup() {
 @test "simple actions fail when the tool is missing" {
   local act
   isolate_path
-  for act in pip yarn pnpm composer go; do
+  for act in pip yarn pnpm uv composer go; do
     run "$JACK" clean "$act"
     [ "$status" -eq 1 ] || { echo "$act status $status"; return 1; }
     [[ "$output" == *"missing command: $act"* ]] || { echo "$act: $output"; return 1; }
