@@ -34,13 +34,18 @@ jack port kill <port> [-y]
 jack clean list         # which cleanups can run on this machine
 jack clean pip          # purge one cache
 jack clean all [-y]     # run every available cleanup
+jack cron list [count]  # crontab jobs with next run times
+jack cron logs [n] [lines] # job log files, or one job's log
+jack mem swap           # swap and RAM use with a verdict
+jack mem usage          # total, used and available RAM
+jack mem top [count]    # programs using the most memory
 jack cheat list [theme] # every action with its description
 jack help               # same as jack
 jack --version          # print the version
 jack port kill -h       # doc and usage for one action
 ```
 
-Themes: `port`, `docker`, `mac`, `ubuntu`, `clean`, `cheat`, `completion`, `tuin`.
+Themes: `port`, `docker`, `mac`, `ubuntu`, `clean`, `cron`, `mem`, `cheat`, `completion`, `tuin`.
 
 Action names use hyphens on the command line and underscores in code, so `jack mac flush-dns` runs `mac_flush_dns`. Destructive actions prompt and accept `-y`. Actions that need root exit with the `sudo jack ...` line to run, jack never calls sudo itself.
 
