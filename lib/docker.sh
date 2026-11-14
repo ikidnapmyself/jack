@@ -1,4 +1,5 @@
 JACK_DESC="Docker and docker-compose chores"
+JACK_ABOUT="Shortcuts for Docker containers and Compose services. Stopping or removing containers takes down whatever they serve, and a removed container loses any data not stored in a volume. Destructive actions ask first."
 JACK_DOC_stop="Stop all running containers"
 JACK_DOC_rm="Remove all exited containers"
 JACK_DOC_prune="Remove unused containers, networks, images and cache, --volumes adds volumes"
@@ -9,10 +10,28 @@ JACK_USAGE_rm="[-y]"
 JACK_USAGE_prune="[--volumes] [-y]"
 JACK_USAGE_ps=""
 JACK_USAGE_restart="<service>"
+JACK_INFO_stop="Stops every running container after asking. The services they provide go offline. Container data is kept unless the container is removed later."
+JACK_INFO_rm="Deletes all stopped containers after asking. Data inside them that is not in a volume is lost. Running containers are not touched."
+JACK_INFO_prune="Removes unused containers, networks, images and build cache after asking. With --volumes it also removes unused volumes, which can delete database data."
+JACK_INFO_ps="Lists the Compose services of the project in the current directory and their state. Read-only."
+JACK_INFO_restart="Restarts one Compose service by name, for example after a config change. Only that service has brief downtime."
+
+_docker_up() {
+  local out
+  out="$(docker info 2>&1)" && return 0
+  case "$out" in
+    *"Cannot connect to the Docker daemon"*|*"daemon running"*)
+      echo "docker isn't running, skipping" >&2
+      return 1
+      ;;
+  esac
+  die "docker info failed: ${out##*$'\n'}"
+}
 
 docker_stop() {
   parse_yes_only "$(jack_usage docker stop)" "$@"
   require_cmd docker
+  _docker_up || return 0
   local ids count
   ids="$(docker ps -q)" || die "docker ps failed"
   if [ -z "$ids" ]; then
@@ -27,6 +46,7 @@ docker_stop() {
 docker_rm() {
   parse_yes_only "$(jack_usage docker rm)" "$@"
   require_cmd docker
+  _docker_up || return 0
   local ids count
   ids="$(docker ps -aq -f status=exited)" || die "docker ps failed"
   if [ -z "$ids" ]; then
@@ -48,19 +68,33 @@ docker_prune() {
     esac
   done
   require_cmd docker
+  _docker_up || return 0
   confirm_unless_yes "Prune unused Docker objects${volumes:+ including volumes}?" "$assume_yes" || return 1
-  jack_spin "Pruning Docker" docker system prune -f $volumes
+  jack_spin "Pruning Docker" docker system prune -f ${volumes:+--volumes}
+}
+
+_docker_compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose "$@"
+  else
+    die "missing command: docker compose"
+  fi
 }
 
 docker_ps() {
   [ $# -eq 0 ] || die_usage "usage: $(jack_usage docker ps)"
-  require_cmd docker-compose
-  docker-compose ps
+  _docker_compose ps
 }
 
 _docker_pick_restart() {
-  command -v docker-compose >/dev/null 2>&1 || return 0
-  docker-compose config --services 2>/dev/null
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose config --services 2>/dev/null
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose config --services 2>/dev/null
+  fi
+  return 0
 }
 
 docker_restart() {
@@ -68,6 +102,5 @@ docker_restart() {
   case "$1" in
     ''|-*|*[!A-Za-z0-9_.-]*) die_usage "invalid service: $1" ;;
   esac
-  require_cmd docker-compose
-  docker-compose restart "$1"
+  _docker_compose restart "$1"
 }

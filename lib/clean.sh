@@ -1,7 +1,9 @@
 JACK_DESC="Cache and disk cleanup"
+JACK_ABOUT="Frees disk space by deleting caches that tools like pip, npm, Docker and Xcode rebuild on their own. Nothing you wrote is touched. The cost is that the next install or build is slower and may need network while the cache refills. Actions that remove more than a cache ask first, and -y skips the question."
 JACK_DOC_pip="Purge the pip cache"
 JACK_DOC_yarn="Clean the Yarn cache"
 JACK_DOC_pnpm="Prune the pnpm store"
+JACK_DOC_uv="Clean the uv cache"
 JACK_DOC_composer="Clear the Composer cache"
 JACK_DOC_go="Clean the Go module cache"
 JACK_DOC_npm="Force-clear the npm cache"
@@ -9,6 +11,7 @@ JACK_DOC_docker="Remove unused Docker containers, networks, images and cache"
 JACK_USAGE_pip=""
 JACK_USAGE_yarn=""
 JACK_USAGE_pnpm=""
+JACK_USAGE_uv=""
 JACK_USAGE_composer=""
 JACK_USAGE_go=""
 JACK_USAGE_npm=""
@@ -23,7 +26,7 @@ JACK_USAGE_xcode="[-y]"
 JACK_USAGE_apt=""
 JACK_USAGE_journal=""
 JACK_USAGE_snap="[-y]"
-JACK_DOC_gradle="Stop the Gradle daemon and delete ~/.gradle/caches"
+JACK_DOC_gradle="Stop the Gradle daemon and delete the Gradle caches, honors GRADLE_USER_HOME"
 JACK_DOC_maven="Delete Maven SNAPSHOT artifacts older than 90 days"
 JACK_DOC_cargo="Autoclean the cargo cache, installs cargo-cache if missing"
 JACK_USAGE_gradle="[-y]"
@@ -33,6 +36,24 @@ JACK_DOC_list="Show every clean action and whether it can run on this machine"
 JACK_USAGE_list=""
 JACK_DOC_all="Run every available clean action except gradle, maven and cargo"
 JACK_USAGE_all="[-y]"
+JACK_INFO_pip="Deletes pip's cache of downloaded packages. pip downloads them again on the next install. Installed packages stay."
+JACK_INFO_yarn="Deletes Yarn's cache of downloaded packages. Yarn downloads them again when needed. Your node_modules stay."
+JACK_INFO_pnpm="Removes packages from the pnpm store that no project uses any more. Projects that still use a package keep working."
+JACK_INFO_uv="Deletes uv's cache of downloaded and built Python packages. They are fetched again on next use."
+JACK_INFO_composer="Deletes Composer's cache of downloaded PHP packages. Your vendor directories stay."
+JACK_INFO_go="Deletes the downloaded Go module cache, which can be several gigabytes. Modules download again on the next build, so that build is slower and needs network."
+JACK_INFO_npm="Force-clears npm's cache of downloaded packages. Your node_modules stay."
+JACK_INFO_docker="Removes unused Docker containers, networks, images and build cache after asking. Volumes are not touched. Images are pulled again when needed."
+JACK_INFO_brew="Removes old Homebrew downloads and outdated versions of installed formulae. The current installed versions stay. macOS only."
+JACK_INFO_xcode="Deletes Xcode DerivedData, which holds build output and indexes. Xcode regenerates it, so the next build is slow. macOS only. Asks first."
+JACK_INFO_apt="Deletes the downloaded .deb files in the APT cache. Installed software stays. Linux only. Needs sudo."
+JACK_INFO_journal="Trims the systemd journal to 100M by deleting the oldest logs. Deleted logs cannot be recovered. Linux only. Needs sudo."
+JACK_INFO_snap="Removes old, disabled snap revisions. Active versions stay, but you can no longer roll back to the removed ones. Linux only. Needs sudo. Asks first."
+JACK_INFO_gradle="Stops the Gradle daemon and deletes the Gradle caches. The next build downloads dependencies again. Asks first. Not part of clean all."
+JACK_INFO_maven="Deletes SNAPSHOT artifacts in the local Maven repository that have not been used for 90 days. Release artifacts stay. Asks first. Not part of clean all."
+JACK_INFO_cargo="Trims Rust's cargo cache of old crate sources and registry data using cargo-cache, which it installs if missing. Asks first. Not part of clean all."
+JACK_INFO_list="Shows every clean action and whether it can run on this machine. Read-only."
+JACK_INFO_all="Runs every available clean action except gradle, maven and cargo. Actions that need root are skipped and their sudo command is printed. -y skips the confirmations."
 
 . "$JACK_ROOT/lib/docker.sh"
 
@@ -55,6 +76,7 @@ _clean_available() {
     maven) [ -d "${HOME:?}/.m2/repository" ] ;;
     brew) [ "$os" = Darwin ] && command -v brew >/dev/null 2>&1 ;;
     apt|snap) [ "$os" = Linux ] && command -v "$1" >/dev/null 2>&1 ;;
+    docker) command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 ;;
     journal) [ "$os" = Linux ] && command -v journalctl >/dev/null 2>&1 ;;
     *) command -v "$1" >/dev/null 2>&1 ;;
   esac
@@ -70,6 +92,7 @@ _clean_needs_root() {
 clean_pip() { _clean_simple pip $# pip cache purge; }
 clean_yarn() { _clean_simple yarn $# yarn cache clean; }
 clean_pnpm() { _clean_simple pnpm $# pnpm store prune; }
+clean_uv() { _clean_simple uv $# uv cache clean; }
 clean_composer() { _clean_simple composer $# composer clear-cache; }
 clean_go() { _clean_simple go $# go clean -modcache; }
 
@@ -142,7 +165,7 @@ clean_snap() {
 clean_gradle() {
   parse_yes_only "$(jack_usage clean gradle)" "$@"
   require_cmd gradle
-  local dir="${HOME:?}/.gradle/caches"
+  local dir="${GRADLE_USER_HOME:-${HOME:?}/.gradle}/caches"
   confirm_unless_yes "Stop the Gradle daemon and delete $dir?" "$ASSUME_YES" || return 1
   gradle --stop
   rm -rf -- "$dir"
@@ -174,7 +197,7 @@ clean_cargo() {
   parse_yes_only "$(jack_usage clean cargo)" "$@"
   require_cmd cargo
   confirm_unless_yes "Autoclean the cargo cache, installing cargo-cache if missing?" "$ASSUME_YES" || return 1
-  cargo cache --version >/dev/null 2>&1 || cargo install cargo-cache || die "cargo install failed"
+  cargo cache --version >/dev/null 2>&1 || cargo install --locked --version 0.8.3 cargo-cache || die "cargo install failed"
   cargo cache --autoclean
 }
 

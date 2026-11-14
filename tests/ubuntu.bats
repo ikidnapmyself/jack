@@ -15,13 +15,44 @@ setup() {
   not_logged_like "^service"
 }
 
-@test "flush-dns restarts named and nscd as root" {
+@test "flush-dns uses resolvectl when present" {
   stub_cmd id 'echo 0'
+  stub_cmd resolvectl ''
   stub_cmd service ''
   run "$JACK" ubuntu flush-dns
   [ "$status" -eq 0 ]
+  logged "resolvectl flush-caches"
+  not_logged_like "^service"
+}
+
+@test "flush-dns restarts named and nscd with -y when resolvectl is absent" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service ''
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 0 ]
   logged "service named restart"
   logged "service nscd restart"
+}
+
+@test "flush-dns asks before restarting services" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service ''
+  run "$JACK" ubuntu flush-dns <<< "n"
+  [ "$status" -eq 1 ]
+  not_logged_like "^service"
+}
+
+@test "flush-dns tolerates a missing named but fails when nothing restarts" {
+  isolate_path
+  stub_cmd id 'echo 0'
+  stub_cmd service '[ "$1" = named ] && exit 1; exit 0'
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 0 ]
+  stub_cmd service 'exit 1'
+  run "$JACK" ubuntu flush-dns -y
+  [ "$status" -eq 1 ]
 }
 
 @test "ports lists listening tcp sockets" {
@@ -199,7 +230,30 @@ make_sized_files() {
   stub_cmd mount ''
   run "$JACK" ubuntu mount /dev/sdb1 "$BATS_TEST_TMPDIR/mnt"
   [ "$status" -eq 0 ]
-  logged "mount /dev/sdb1 $BATS_TEST_TMPDIR/mnt"
+  logged "mount -o nosuid,nodev,noexec /dev/sdb1 $BATS_TEST_TMPDIR/mnt"
+}
+
+@test "mount rejects a device path with traversal" {
+  mkdir -p "$BATS_TEST_TMPDIR/mnt"
+  stub_cmd id 'echo 0'
+  stub_cmd mount ''
+  run "$JACK" ubuntu mount /dev/../tmp/x.img "$BATS_TEST_TMPDIR/mnt"
+  [ "$status" -eq 2 ]
+  not_logged_like "^mount"
+}
+
+@test "big-files-delete handles newlines in names and refuses /" {
+  BIG_DIR="$BATS_TEST_TMPDIR/big"
+  mkdir -p "$BIG_DIR"
+  cd "$BATS_TEST_TMPDIR"
+  : > keep.db
+  head -c 3000 /dev/zero > "$BIG_DIR/junk
+keep.db"
+  run "$JACK" ubuntu big-files-delete 1k "$BIG_DIR" -y
+  [ "$status" -eq 0 ]
+  [ -f keep.db ]
+  run "$JACK" ubuntu big-files-delete 1k / -y
+  [ "$status" -eq 2 ]
 }
 
 @test "mount validates device and target before the root check" {

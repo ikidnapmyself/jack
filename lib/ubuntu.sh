@@ -1,30 +1,48 @@
 JACK_DESC="Ubuntu chores"
 JACK_OS="Linux"
-JACK_DOC_flush_dns="Restart named and nscd to flush DNS caches, needs root"
+JACK_ABOUT="Ubuntu chores: network checks, finding and deleting large files, mounting disks and flushing DNS. Listing actions are read-only. Deleting files and mounting change the system, and some actions need sudo."
+JACK_DOC_flush_dns="Flush the DNS cache with resolvectl, or restart named and nscd, needs root"
 JACK_DOC_ports="List listening TCP ports with owning processes"
 JACK_DOC_port_test="Check whether a host accepts TCP connections on a port"
 JACK_DOC_count="Count files under a directory"
 JACK_DOC_mysql_config="Show where MySQL looks for option files"
-JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email"
+JACK_DOC_ssh_key="Generate an ed25519 SSH key for an email, default path ~/.ssh/id_ed25519"
 JACK_DOC_big_files="List files over a size such as 500k, 10M or 1G, a unit k, M or G is required"
 JACK_DOC_big_files_delete="Delete files over a size after showing how many match"
 JACK_DOC_mount="Mount a device at a target directory, needs root"
-JACK_USAGE_flush_dns=""
+JACK_USAGE_flush_dns="[-y]"
 JACK_USAGE_ports=""
 JACK_USAGE_port_test="<host> <port>"
 JACK_USAGE_count="[dir]"
 JACK_USAGE_mysql_config=""
-JACK_USAGE_ssh_key="<email>"
+JACK_USAGE_ssh_key="<email> [path]"
 JACK_USAGE_big_files="<size> [dir]"
 JACK_USAGE_big_files_delete="<size> [dir] [-y]"
 JACK_USAGE_mount="<device> <target>"
+JACK_INFO_flush_dns="Clears cached DNS lookups with resolvectl, or restarts named and nscd when resolvectl is missing. Asks before the restart fallback. Needs sudo."
+JACK_INFO_ports="Lists listening TCP ports with the process that owns each. Read-only."
+JACK_INFO_port_test="Tries to open a TCP connection to a host and port and says whether it worked. Use it to check that a server or firewall is reachable. Read-only."
+JACK_INFO_count="Counts the files under a directory, the current one by default. Read-only."
+JACK_INFO_mysql_config="Shows the option files, such as my.cnf, that MySQL reads and in which order. Read-only."
+JACK_INFO_ssh_key="Creates a new ed25519 key pair for logging in to servers and Git hosts, then prints where the public key is so you can share it. Refuses to overwrite an existing key. ssh-keygen asks for an optional passphrase."
+JACK_INFO_big_files="Lists files over a size such as 500k, 10M or 1G under a directory, the current one by default. Read-only. Run it before big-files-delete."
+JACK_INFO_big_files_delete="Deletes every file over the given size after showing how many match and asking. Files are removed for good, there is no trash. Check with big-files first."
+JACK_INFO_mount="Mounts a device at an existing directory. Mounted with nosuid, nodev and noexec, so programs on it cannot run. Needs sudo."
 
 ubuntu_flush_dns() {
-  [ $# -eq 0 ] || die_usage "usage: $(jack_usage ubuntu flush-dns)"
+  parse_yes_only "$(jack_usage ubuntu flush-dns)" "$@"
   require_root ubuntu flush-dns
+  if command -v resolvectl >/dev/null 2>&1; then
+    resolvectl flush-caches
+    return
+  fi
   require_cmd service
-  service named restart
-  service nscd restart
+  confirm_unless_yes "Restart named and nscd?" "$ASSUME_YES" || return 1
+  local restarted=0 svc
+  for svc in named nscd; do
+    service "$svc" restart && restarted=1
+  done
+  [ "$restarted" -eq 1 ] || die "neither named nor nscd could be restarted"
 }
 
 ubuntu_ports() {
@@ -85,20 +103,24 @@ _ubuntu_validate_size() {
 }
 
 _ubuntu_big_matches() {
-  find "$2" -type f -size +"$1"
+  BIG_MATCHES=()
+  local f
+  while IFS= read -r -d '' f; do
+    BIG_MATCHES+=("$f")
+  done < <(find "$2" -xdev -type f -size +"$1" -print0)
 }
 
 ubuntu_big_files() {
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "usage: $(jack_usage ubuntu big-files)"
   _ubuntu_validate_size "$1"
-  local dir="${2:-.}" matches
+  local dir="${2:-.}"
   _ubuntu_validate_dir "$dir"
-  matches="$(_ubuntu_big_matches "$1" "$dir")"
-  if [ -z "$matches" ]; then
+  _ubuntu_big_matches "$1" "$dir"
+  if [ ${#BIG_MATCHES[@]} -eq 0 ]; then
     echo "no files over $1 in $dir" >&2
     return 1
   fi
-  printf '%s\n' "$matches"
+  printf '%s\n' "${BIG_MATCHES[@]}"
 }
 
 ubuntu_big_files_delete() {
@@ -114,19 +136,19 @@ ubuntu_big_files_delete() {
   done
   { [ $# -ge 1 ] && [ $# -le 2 ]; } || die_usage "$usage"
   _ubuntu_validate_size "$1"
-  local dir="${2:-.}" matches count f
+  local dir="${2:-.}" f
   _ubuntu_validate_dir "$dir"
-  matches="$(_ubuntu_big_matches "$1" "$dir")"
-  if [ -z "$matches" ]; then
+  [ "$(cd "$dir" && pwd -P)" != / ] || die_usage "refusing to delete from /"
+  _ubuntu_big_matches "$1" "$dir"
+  if [ ${#BIG_MATCHES[@]} -eq 0 ]; then
     echo "no files over $1 in $dir" >&2
     return 1
   fi
-  printf '%s\n' "$matches"
-  count="$(printf '%s\n' "$matches" | wc -l | tr -d ' ')"
-  confirm_unless_yes "Delete $count file(s) over $1 in $dir?" "$assume_yes" || return 1
-  while IFS= read -r f; do
+  printf '%s\n' "${BIG_MATCHES[@]}"
+  confirm_unless_yes "Delete ${#BIG_MATCHES[@]} file(s) over $1 in $dir?" "$assume_yes" || return 1
+  for f in "${BIG_MATCHES[@]}"; do
     rm -- "$f"
-  done <<< "$matches"
+  done
 }
 
 _ubuntu_pick_mount() {
@@ -137,11 +159,12 @@ _ubuntu_pick_mount() {
 ubuntu_mount() {
   [ $# -eq 2 ] || die_usage "usage: $(jack_usage ubuntu mount)"
   case "$1" in
+    */../*|*/..) die_usage "invalid device: $1" ;;
     /dev/?*) ;;
     *) die_usage "invalid device: $1" ;;
   esac
   [ -d "$2" ] || die_usage "not a directory: $2"
   require_root ubuntu mount "$@"
   require_cmd mount
-  mount "$1" "$2"
+  mount -o nosuid,nodev,noexec "$1" "$2"
 }

@@ -77,9 +77,17 @@ STUB
   [ "$(printf '%s\n' "$output" | grep -c "^$port ")" -eq 1 ]
 }
 
+@test "port list and mem top opt out of optional prompts" {
+  . "$JACK_ROOT/lib/core.sh"
+  [ "$(jack_meta port ASK list)" = no ]
+  [ "$(jack_meta mem ASK top)" = no ]
+  [ -z "$(jack_meta port ASK kill)" ]
+}
+
 @test "docker restart picker prints compose services" {
   . "$JACK_ROOT/lib/docker.sh"
   setup_stubs
+  stub_cmd docker 'case "$1" in compose) exit 1 ;; esac'
   stub_cmd docker-compose 'printf "web\ndb\n"'
   run _docker_pick_restart
   [ "$output" = "$(printf 'web\ndb')" ]
@@ -128,4 +136,24 @@ STUB
   [ "$status" -eq 1 ]
   [[ "$output" == *"download failed"* ]]
   [ ! -e "$JACK_CONFIG_DIR/tuin" ]
+}
+
+@test "default tuin file is not loaded when its checksum mismatches" {
+  echo on > "$JACK_CONFIG_DIR/tuin"
+  unset JACK_TUIN_FILE
+  JACK_ROOT="$BATS_TEST_TMPDIR/root"
+  mkdir -p "$JACK_ROOT/lib/vendor"
+  cp "$BATS_TEST_DIRNAME/../lib/core.sh" "$JACK_ROOT/lib/core.sh"
+  echo 'tuin_confirm() { :; }' > "$JACK_ROOT/lib/vendor/tuin.sh"
+  run bash -c ". '$JACK_ROOT/lib/core.sh'; echo on=\$JACK_TUIN_ON"
+  [[ "$output" == *"checksum mismatch"* ]]
+  [[ "$output" == *"on=0"* ]]
+}
+
+@test "JACK_TUIN_FILE override is ignored as root" {
+  setup_stubs
+  echo on > "$JACK_CONFIG_DIR/tuin"
+  stub_cmd id 'echo 0'
+  . "$JACK_ROOT/lib/core.sh"
+  [ "$JACK_TUIN_ON" -eq 0 ]
 }

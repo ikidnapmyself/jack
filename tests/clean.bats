@@ -8,21 +8,9 @@ setup() {
   mkdir -p "$HOME"
 }
 
-isolate_path() {
-  local bin="$BATS_TEST_TMPDIR/bin" tool src
-  mkdir -p "$bin"
-  for tool in bash env sed tr head wc awk id find rm mkdir chmod touch basename dirname cat uname readlink grep sort; do
-    src="$(command -v "$tool")"
-    case "$src" in
-      /*) ln -sf "$src" "$bin/$tool" ;;
-    esac
-  done
-  PATH="$STUB_DIR:$bin"
-}
-
 @test "simple actions run their command" {
   local row act cmd
-  for row in "pip|pip cache purge" "yarn|yarn cache clean" "pnpm|pnpm store prune" "composer|composer clear-cache" "go|go clean -modcache"; do
+  for row in "pip|pip cache purge" "yarn|yarn cache clean" "pnpm|pnpm store prune" "uv|uv cache clean" "composer|composer clear-cache" "go|go clean -modcache"; do
     act="${row%%|*}"
     cmd="${row#*|}"
     stub_cmd "${cmd%% *}" ''
@@ -35,7 +23,7 @@ isolate_path() {
 @test "simple actions fail when the tool is missing" {
   local act
   isolate_path
-  for act in pip yarn pnpm composer go; do
+  for act in pip yarn pnpm uv composer go; do
     run "$JACK" clean "$act"
     [ "$status" -eq 1 ] || { echo "$act status $status"; return 1; }
     [[ "$output" == *"missing command: $act"* ]] || { echo "$act: $output"; return 1; }
@@ -76,7 +64,7 @@ isolate_path() {
   stub_cmd docker ''
   run "$JACK" clean docker <<< "n"
   [ "$status" -eq 1 ]
-  not_logged_like "^docker"
+  not_logged_like "^docker system"
 }
 
 @test "docker rejects unknown flags" {
@@ -267,6 +255,16 @@ fi'
   [ ! -e "$HOME/.gradle/caches" ]
 }
 
+@test "gradle honors GRADLE_USER_HOME" {
+  stub_cmd gradle ''
+  export GRADLE_USER_HOME="$BATS_TEST_TMPDIR/gh"
+  mkdir -p "$GRADLE_USER_HOME/caches/8.0" "$HOME/.gradle/caches"
+  run "$JACK" clean gradle -y
+  [ "$status" -eq 0 ]
+  [ ! -e "$GRADLE_USER_HOME/caches" ]
+  [ -d "$HOME/.gradle/caches" ]
+}
+
 @test "gradle keeps caches when declined" {
   stub_cmd gradle ''
   mkdir -p "$HOME/.gradle/caches/8.0"
@@ -337,7 +335,7 @@ fi'
   stub_cmd cargo '[ "$1 $2" = "cache --version" ] && exit 1; exit 0'
   run "$JACK" clean cargo -y
   [ "$status" -eq 0 ]
-  logged "cargo install cargo-cache"
+  logged "cargo install --locked --version 0.8.3 cargo-cache"
   logged "cargo cache --autoclean"
 }
 
@@ -485,4 +483,14 @@ fi'
       false
     fi
   done
+}
+
+@test "all skips docker when the daemon is down" {
+  export JACK_UNAME=Darwin
+  isolate_path
+  stub_cmd docker 'case "$1" in info) exit 1 ;; esac'
+  run "$JACK" clean all -y
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skip docker, not available"* ]]
+  not_logged_like "^docker system"
 }

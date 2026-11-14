@@ -55,7 +55,7 @@ pick_candidate() {
   local lines line
   lines="$("$1" 2>/dev/null)"
   [ -n "$lines" ] || return 0
-  line="$(choose_lines "$lines")" || return 1
+  line="$(TUIN_FILTER=1 choose_lines "$lines")" || return 1
   printf '%s\n' "${line%% *}"
 }
 
@@ -95,6 +95,7 @@ collect_args() {
       "["*"]")
         i=$((i + 1))
         { [ "$full" -eq 1 ] && [ "$i" -gt "$have" ]; } || continue
+        [ "$(jack_meta "$theme" ASK "$(printf %s "$action" | tr - _)")" != no ] || continue
         name="${tok#[}"
         name="${name%]}"
         val="$(tuin_input "$name, optional" "")" || { set +f; return 1; }
@@ -143,7 +144,7 @@ picker() {
   for name in $(jack_visible_themes); do
     opts+=("$(printf '%-8s %s' "$name" "$(jack_desc "$name")")")
   done
-  tuin_banner "jack"
+  TUIN_LOGO="$JACK_ROOT/assets/logo.txt" tuin_logo
   while tuin_menu "themes" "${opts[@]}"; do
     case "$TUIN_REPLY" in
       search*) pick_search ;;
@@ -159,6 +160,11 @@ main() {
   if [ "$theme" = __complete ]; then
     shift
     jack_complete "$@"
+    return 0
+  fi
+
+  if [ "$theme" = --version ]; then
+    echo "jack $JACK_VERSION"
     return 0
   fi
 

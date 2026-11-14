@@ -75,6 +75,23 @@ setup() {
   logged "ssh-keygen -t ed25519 -C me@example.com -f $HOME/.ssh/id_ed25519"
 }
 
+@test "ssh_keygen_for honors a custom path" {
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME"
+  stub_cmd ssh-keygen ''
+  run ssh_keygen_for mac me@example.com "$BATS_TEST_TMPDIR/keys/work"
+  [ "$status" -eq 0 ]
+  logged "ssh-keygen -t ed25519 -C me@example.com -f $BATS_TEST_TMPDIR/keys/work"
+  [ -d "$BATS_TEST_TMPDIR/keys" ]
+}
+
+@test "ssh_keygen_for rejects a path starting with a dash" {
+  stub_cmd ssh-keygen ''
+  run ssh_keygen_for mac me@example.com -x
+  [ "$status" -eq 2 ]
+  not_logged_like "^ssh-keygen"
+}
+
 @test "ssh_keygen_for refuses to overwrite an existing key" {
   export HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$HOME/.ssh"

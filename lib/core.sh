@@ -24,9 +24,11 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
 }
 
-JACK_TUIN_VERSION="0.2.0"
-JACK_TUIN_SHA256="7f69fb0edf827ac0e764cee044c14ed5628add59837a97d3e6daf0fd7b73a0e0"
-JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_ROOT/lib/vendor/tuin.sh}"
+JACK_VERSION="0.1.0"
+JACK_TUIN_VERSION="0.3.0"
+JACK_TUIN_SHA256="aa377dc761811f1e99ee6115d22e1de407ec40379a6ee224aecee474e5608423"
+JACK_TUIN_DEFAULT_FILE="$JACK_ROOT/lib/vendor/tuin.sh"
+JACK_TUIN_FILE="${JACK_TUIN_FILE:-$JACK_TUIN_DEFAULT_FILE}"
 JACK_TUIN_STATE="${JACK_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/jack}/tuin"
 JACK_TUIN_ON=0
 
@@ -38,8 +40,21 @@ jack_tuin_set() {
   mkdir -p "$(dirname "$JACK_TUIN_STATE")" && printf '%s\n' "$1" > "$JACK_TUIN_STATE"
 }
 
+jack_sha256() {
+  shasum -a 256 "$1" 2>/dev/null | cut -d' ' -f1 | grep . || sha256sum "$1" 2>/dev/null | cut -d' ' -f1
+}
+
 jack_tuin_load() {
   [ "$(jack_tuin_state)" = on ] && [ -f "$JACK_TUIN_FILE" ] || return 0
+  if [ "$JACK_TUIN_FILE" != "$JACK_TUIN_DEFAULT_FILE" ]; then
+    if [ "$(id -u)" = 0 ]; then
+      echo "warning: ignoring JACK_TUIN_FILE override while running as root" >&2
+      return 0
+    fi
+  elif [ "$(jack_sha256 "$JACK_TUIN_FILE")" != "$JACK_TUIN_SHA256" ]; then
+    echo "warning: tuin checksum mismatch, not loading $JACK_TUIN_FILE" >&2
+    return 0
+  fi
   . "$JACK_TUIN_FILE" && JACK_TUIN_ON=1
   return 0
 }
@@ -53,8 +68,7 @@ jack_tuin_install() {
     echo "error: tuin download failed" >&2
     return 1
   fi
-  sum="$(shasum -a 256 "$tmp" 2>/dev/null | cut -d' ' -f1)"
-  [ -n "$sum" ] || sum="$(sha256sum "$tmp" | cut -d' ' -f1)"
+  sum="$(jack_sha256 "$tmp")"
   if [ "$sum" != "$JACK_TUIN_SHA256" ]; then
     rm -f "$tmp"
     echo "error: tuin checksum mismatch" >&2
@@ -133,12 +147,15 @@ validate_port() {
 ssh_keygen_for() {
   local theme="$1"
   shift
-  { [ $# -eq 1 ] && [ -n "$1" ]; } || die_usage "usage: $(jack_usage "$theme" ssh-key)"
+  { [ $# -ge 1 ] && [ $# -le 2 ] && [ -n "$1" ]; } || die_usage "usage: $(jack_usage "$theme" ssh-key)"
   require_cmd ssh-keygen
-  local path="$HOME/.ssh/id_ed25519"
+  local path="${2:-$HOME/.ssh/id_ed25519}"
+  case "$path" in
+    -*) die_usage "invalid path: $path" ;;
+  esac
   [ ! -e "$path" ] || die "$path already exists"
-  mkdir -p "$HOME/.ssh"
-  chmod 700 "$HOME/.ssh"
+  mkdir -p "$(dirname "$path")"
+  [ -n "${2:-}" ] || chmod 700 "$HOME/.ssh"
   ssh-keygen -t ed25519 -C "$1" -f "$path"
   echo "public key: $path.pub"
 }
@@ -226,3 +243,7 @@ jack_complete() {
 }
 
 jack_tuin_load
+
+jack_about() {
+  sed -n 's/^JACK_ABOUT="\(.*\)"$/\1/p' "$JACK_ROOT/lib/$1.sh" | head -n 1
+}
