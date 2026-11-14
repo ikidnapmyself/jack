@@ -6,6 +6,7 @@ JACK_DOC_top="List the programs using the most memory, count defaults to 10, max
 JACK_USAGE_swap=""
 JACK_USAGE_usage=""
 JACK_USAGE_top="[count]"
+JACK_ASK_top="no"
 JACK_INFO_swap="Shows swap used and total, RAM available and a verdict. ok means plenty of RAM and light swap. busy means half or more of swap is used. under pressure means less than 10 percent of RAM is available. On Linux it also lists the programs holding the most swap. macOS does not expose per-program swap, so use mem top there. Read-only."
 JACK_INFO_usage="Shows total RAM, how much is in use and how much is available for new programs. Available counts memory the system can reclaim, so it is a better number than free. Read-only."
 JACK_INFO_top="Ranks running programs by resident memory, the RAM each one holds right now. Shows pid so you can follow up with port kill or your own tools. Read-only."

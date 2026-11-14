@@ -4,6 +4,7 @@ JACK_DOC_list="List TCP listeners, optionally for one port"
 JACK_DOC_kill="Kill whatever listens on a port, SIGTERM then SIGKILL"
 JACK_USAGE_list="[port]"
 JACK_USAGE_kill="<port> [-y]"
+JACK_ASK_list="no"
 JACK_INFO_list="Shows which program listens on which TCP port, with pid, user and full command. Give a port to look at just that one. Read-only. Useful when something says the port is already in use."
 JACK_INFO_kill="Stops whatever listens on a port. Sends a polite stop first and a forced kill if the program ignores it for about 3 seconds. Shows what it will stop and asks first. Unsaved work in that program is lost."
 

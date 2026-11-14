@@ -67,7 +67,7 @@ Run bare `jack` in a terminal and it offers once to enable [tuin](https://github
 
 ## Add a theme
 
-Create `lib/<theme>.sh` with a `JACK_DESC="..."` line and functions named `<theme>_<action>`. Prefix helpers with `_<theme>_`. Every action needs a `JACK_DOC_<action>="one line"` and a `JACK_USAGE_<action>="args"` assignment. Use an empty usage for actions without arguments. Error messages should call `jack_usage <theme> <action>` instead of repeating the string. Values must not contain double quotes. Tests fail when a doc or usage is missing. Nothing else needs editing.
+Create `lib/<theme>.sh` with a `JACK_DESC="..."` line and functions named `<theme>_<action>`. Prefix helpers with `_<theme>_`. Every action needs a `JACK_DOC_<action>="one line"` and a `JACK_USAGE_<action>="args"` assignment. Use an empty usage for actions without arguments. Error messages should call `jack_usage <theme> <action>` instead of repeating the string. Add `JACK_ASK_<action>="no"` to stop the tuin menu from prompting for optional arguments of that action. Required arguments with a `_<theme>_pick_<action>` helper open a filterable list instead of a text prompt. Values must not contain double quotes. Tests fail when a doc or usage is missing. Nothing else needs editing.
 
 ## Test
 

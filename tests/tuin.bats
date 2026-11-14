@@ -77,6 +77,13 @@ STUB
   [ "$(printf '%s\n' "$output" | grep -c "^$port ")" -eq 1 ]
 }
 
+@test "port list and mem top opt out of optional prompts" {
+  . "$JACK_ROOT/lib/core.sh"
+  [ "$(jack_meta port ASK list)" = no ]
+  [ "$(jack_meta mem ASK top)" = no ]
+  [ -z "$(jack_meta port ASK kill)" ]
+}
+
 @test "docker restart picker prints compose services" {
   . "$JACK_ROOT/lib/docker.sh"
   setup_stubs

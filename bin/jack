@@ -55,7 +55,7 @@ pick_candidate() {
   local lines line
   lines="$("$1" 2>/dev/null)"
   [ -n "$lines" ] || return 0
-  line="$(choose_lines "$lines")" || return 1
+  line="$(TUIN_FILTER=1 choose_lines "$lines")" || return 1
   printf '%s\n' "${line%% *}"
 }
 
@@ -95,6 +95,7 @@ collect_args() {
       "["*"]")
         i=$((i + 1))
         { [ "$full" -eq 1 ] && [ "$i" -gt "$have" ]; } || continue
+        [ "$(jack_meta "$theme" ASK "$(printf %s "$action" | tr - _)")" != no ] || continue
         name="${tok#[}"
         name="${name%]}"
         val="$(tuin_input "$name, optional" "")" || { set +f; return 1; }
