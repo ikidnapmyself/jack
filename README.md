@@ -12,7 +12,40 @@ Local dev toolkit. `jack <theme> <action> [args]`.
 
 ## Install
 
-Needs bash 3.2 or newer and git. Clone it anywhere and link `bin/jack` onto your `PATH`.
+Needs bash 3.2 or newer and git.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ikidnapmyself/jack/main/install.sh | sh
+```
+
+Or with wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/ikidnapmyself/jack/main/install.sh | sh
+```
+
+The script clones jack into `~/.local/share/jack` and links `~/.local/bin/jack`. It never uses sudo and never edits your shell rc. If `~/.local/bin` isn't on your `PATH`, or you want completion, it prints the line to add. Read [install.sh](install.sh) first if you'd rather not pipe to `sh`.
+
+Run the same command again to update. Uninstall with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ikidnapmyself/jack/main/install.sh | sh -s -- --uninstall
+```
+
+Uninstalling leaves `~/.config/jack` in place.
+
+Override the defaults with environment variables on the `sh` side of the pipe:
+
+| Variable | Default |
+| --- | --- |
+| `JACK_DIR` | `~/.local/share/jack` |
+| `JACK_BIN_DIR` | `~/.local/bin` |
+| `JACK_REF` | `main` |
+| `JACK_REPO` | `https://github.com/ikidnapmyself/jack.git` |
+
+For a system-wide install, `curl -fsSL .../install.sh | sudo JACK_DIR=/opt/jack JACK_BIN_DIR=/usr/local/bin sh`.
+
+### Manual install
 
 ```bash
 git clone https://github.com/ikidnapmyself/jack.git ~/.local/share/jack
@@ -20,9 +53,29 @@ mkdir -p ~/.local/bin
 ln -s ~/.local/share/jack/bin/jack ~/.local/bin/jack
 ```
 
-Make sure `~/.local/bin` is on your `PATH`. For a system-wide install, clone to `/opt/jack` and link into `/usr/local/bin` with `sudo ln -s /opt/jack/bin/jack /usr/local/bin/jack`.
+Update with `git -C ~/.local/share/jack pull`. Check it worked with `jack --version`.
 
-Update with `git -C ~/.local/share/jack pull`. Remove with `rm ~/.local/bin/jack` and `rm -rf ~/.local/share/jack`. Check it worked with `jack --version`.
+### Install with an AI agent
+
+Paste this into Claude Code, Cursor or any coding agent with shell access:
+
+```text
+Install jack, a bash dev toolkit, from https://github.com/ikidnapmyself/jack.
+
+1. Read https://raw.githubusercontent.com/ikidnapmyself/jack/main/install.sh
+   and tell me in two lines what it does before running anything.
+2. Run: curl -fsSL https://raw.githubusercontent.com/ikidnapmyself/jack/main/install.sh | sh
+3. If the installer says ~/.local/bin isn't on my PATH, add the export line
+   it printed to my shell rc. Detect the shell from $SHELL. Don't add it twice.
+4. Add tab completion to the same rc file:
+   command -v jack >/dev/null && eval "$(jack completion <zsh|bash>)"
+   In .zshrc it must go after compinit. Skip it if it's already there.
+5. Verify in a fresh shell: run `jack --version` and `jack`.
+6. Show me the diff of every rc file you touched.
+
+Don't use sudo. Don't run `jack tuin enable` or any destructive jack action.
+Tell me I can turn on the optional tuin UI later with `jack tuin enable`.
+```
 
 ## Use
 
