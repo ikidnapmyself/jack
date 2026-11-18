@@ -28,7 +28,7 @@ _mem_stats() {
       total="$(sysctl -n hw.memsize 2>/dev/null)" || die "sysctl hw.memsize failed"
       level="$(sysctl -n kern.memorystatus_level 2>/dev/null)" || die "sysctl kern.memorystatus_level failed"
       total=$((total / 1024))
-      avail=$((total * level / 100))
+      avail=$(((total * level + 99) / 100))
       read -r stotal sused <<< "$(sysctl -n vm.swapusage 2>/dev/null | awk '
         function kb(v) { n = v + 0; u = substr(v, length(v)); return n * (u == "G" ? 1048576 : u == "K" ? 1 : 1024) }
         { print int(kb($3)), int(kb($6)) }')"
