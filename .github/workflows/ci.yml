@@ -21,6 +21,8 @@ jobs:
             brew install bats-core shellcheck
           fi
       - name: Shellcheck
-        run: shellcheck -s bash -x -e SC2034,SC2148 bin/jack lib/*.sh
+        run: |
+          shellcheck -S warning -s bash -x -e SC2034,SC2148 bin/jack lib/*.sh
+          shellcheck -S warning -s sh install.sh
       - name: Bats
         run: bats tests

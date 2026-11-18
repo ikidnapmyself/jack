@@ -55,6 +55,7 @@ jack_tuin_load() {
     echo "warning: tuin checksum mismatch, not loading $JACK_TUIN_FILE" >&2
     return 0
   fi
+  # shellcheck source=/dev/null
   . "$JACK_TUIN_FILE" && JACK_TUIN_ON=1
   return 0
 }

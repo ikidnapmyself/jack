@@ -187,6 +187,7 @@ main() {
   if [ "$theme" = core ] || [ ! -f "$JACK_ROOT/lib/$theme.sh" ]; then
     die_usage "unknown theme: $theme"
   fi
+  # shellcheck source=/dev/null
   . "$JACK_ROOT/lib/$theme.sh"
 
   if [ -z "$action" ] || [ "$action" = help ]; then
