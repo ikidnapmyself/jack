@@ -124,7 +124,8 @@ ubuntu_big_files() {
 }
 
 ubuntu_big_files_delete() {
-  local usage="usage: $(jack_usage ubuntu big-files-delete)"
+  local usage
+  usage="usage: $(jack_usage ubuntu big-files-delete)"
   local assume_yes=0 n=$#
   while [ "$n" -gt 0 ]; do
     case "$1" in
