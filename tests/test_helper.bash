@@ -7,35 +7,37 @@ free_port() {
 
 wait_for_port() {
   local i
-  for i in $(seq 1 50); do
+  for i in $(seq 1 100); do
     lsof -nP -iTCP:"$1" -sTCP:LISTEN -t >/dev/null 2>&1 && return 0
     sleep 0.1
   done
   return 1
 }
 
-capture_listener_pid() {
-  LISTENER_PID="$(lsof -nP -iTCP:"$1" -sTCP:LISTEN -t | head -n 1)"
-}
-
-start_listener() {
-  ( python3 -m http.server "$1" --bind 127.0.0.1 >/dev/null 2>&1 & )
-  wait_for_port "$1"
-  capture_listener_pid "$1"
-}
-
-start_stubborn_listener() {
+# A listener left holding fd 3 makes bats wait for it forever, so close it.
+_spawn_listener() {
+  local pidfile="$BATS_TEST_TMPDIR/listener.pid"
   ( python3 -c '
 import signal, socket, sys, time
-signal.signal(signal.SIGTERM, signal.SIG_IGN)
+if sys.argv[2] == "stubborn":
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
 s = socket.socket()
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(("127.0.0.1", int(sys.argv[1])))
 s.listen()
-time.sleep(60)
-' "$1" >/dev/null 2>&1 & )
+time.sleep(120)
+' "$1" "$2" jack-test-listener >/dev/null 2>&1 3>&- &
+    echo $! > "$pidfile" )
+  LISTENER_PID="$(cat "$pidfile")"
   wait_for_port "$1"
-  capture_listener_pid "$1"
+}
+
+start_listener() {
+  _spawn_listener "$1" plain
+}
+
+start_stubborn_listener() {
+  _spawn_listener "$1" stubborn
 }
 
 stop_listener() {

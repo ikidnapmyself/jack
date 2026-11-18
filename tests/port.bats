@@ -17,7 +17,7 @@ teardown() {
   [[ "$output" == *"PORT"* ]]
   [[ "$output" == *"$PORT"* ]]
   [[ "$output" == *"$LISTENER_PID"* ]]
-  [[ "$output" == *"http.server"* ]]
+  [[ "$output" == *"jack-test-listener"* ]]
 }
 
 @test "list with a port filters to that port" {
